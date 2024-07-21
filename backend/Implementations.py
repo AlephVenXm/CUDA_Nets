@@ -101,5 +101,7 @@ class Normalization(Layer):
 class Add(Layer):
     def __init__(self):
         ...
-    def __call__(self, l1, l2):
-        return add(l1, l2)
+    def __call__(self, layers):
+        sum = 0
+        for layer in layers: sum = add(sum, layer)
+        return sum
