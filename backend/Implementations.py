@@ -83,7 +83,7 @@ class MultiHeadAttention(Layer):
     def __call__(self, queries, keys, values, mask=None):
         q_reshaped = self.reshape(self.W_q(queries), self.heads, True)
         k_reshaped = self.reshape(self.W_k(keys), self.heads, True)
-        v_reshaped = self.reshaper(self.W_v(values), self.heads, True)
+        v_reshaped = self.reshape(self.W_v(values), self.heads, True)
         o_reshaped = self.attention(q_reshaped, k_reshaped, v_reshaped, self.d_k, mask)
         output = self.reshape(o_reshaped, self.heads, False)
         return self.W_o.forward(output)
