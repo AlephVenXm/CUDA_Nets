@@ -7,8 +7,7 @@ class Layer:
         self.biases = cu.zeros(shape=(1,))
         ...
     def forward(self, input):
-        output = add(cu.matmul(input, self.weights), self.biases)
-        return output
+        return add(cu.matmul(input, self.weights), self.biases)
 
 class Dense(Layer):
     def __init__(self, inputs, outputs, learning_rate=0.1):
