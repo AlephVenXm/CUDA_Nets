@@ -51,9 +51,9 @@ class Softmax(Layer):
         softmax_gradient = self.softmax(input)
         return mul(gradient_output, softmax_gradient)
 
-class DotProductAttention():
-    def __init__(self, **kwargs):
-        super(DotProductAttention, self).__init__(**kwargs)
+class DotProductAttention(Layer):
+    def __init__(self):
+        ...
     def __call__(self, queries, keys, values, d_k, mask=None):
         scores = div(cu.matmul(queries, keys), cu.sqrt(d_k))
         if mask is not None:
