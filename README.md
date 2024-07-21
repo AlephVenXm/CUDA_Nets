@@ -8,10 +8,13 @@
 # Random-walk test
 
 >> Cuda
+
 433 μs ± 71.2 μs per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
 >> Numpy
+
 9.4 ms ± 208 μs per loop (mean ± std. dev. of 7 runs, 100 loops each)
 
 >> TensorFlow
+
 17.6 ms ± 53.2 μs per loop (mean ± std. dev. of 7 runs, 100 loops each)
