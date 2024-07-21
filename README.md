@@ -1,6 +1,10 @@
 # CUDA_Nets
 [WIP] This repo implements various AI and ML functions with CUDA architecture on Python, uniting simplicity of Python and parallel computations with CUDA
 
+# Uniting Python and CUDA
+
+![merge](https://github.com/AlephVenXm/CUDA_Nets/blob/main/merge.png)
+
 # Test on function = sum(sqrt(linspace(0.0, 100.0, 10e6)))
 
 ![compare](https://github.com/AlephVenXm/CUDA_Nets/blob/main/compare.png)
