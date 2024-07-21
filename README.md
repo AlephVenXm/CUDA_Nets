@@ -3,6 +3,8 @@
 
 # Uniting Python and CUDA
 
+Interface of classes are written on Python, while all computation goes trough GPU using CUDA architecture
+
 ![merge](https://github.com/AlephVenXm/CUDA_Nets/blob/main/merge.png)
 
 # Test on function = sum(sqrt(linspace(0.0, 100.0, 10e6)))
