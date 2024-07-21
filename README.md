@@ -17,7 +17,7 @@ Interface of classes are written on Python, while all computation goes trough GP
 def random_walk(n):
     steps = random.choice([-1,+1], n)
     return cumsum(steps)
-%timeit walk = random_walk(1000000)
+%timeit walk = random_walk(10e5)
 ```
 
 >> Cuda
