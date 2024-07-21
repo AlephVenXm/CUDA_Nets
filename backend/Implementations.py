@@ -41,7 +41,7 @@ class GeLU(Layer):
 class Softmax(Layer):
     def __init__(self):
         ...
-    def softmax(self, x, axis=-1):
+    def softmax(self, x):
         res = cu.empty(x.shape)
         softmax((x[0].shape), (x[1].shape), (x, res))
         return res
