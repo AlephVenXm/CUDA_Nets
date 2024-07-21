@@ -53,6 +53,9 @@ class Softmax(Layer):
         softmax_gradient = self.softmax(input)
         return mul(gradient_output, softmax_gradient)
 
+class Embedding(Layer):
+    ...
+
 class DotProductAttention(Layer):
     def __init__(self):
         ...
