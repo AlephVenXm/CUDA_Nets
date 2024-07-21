@@ -1,12 +1,12 @@
 import cupy as cu
-from C_Functions import add, sub, mul, div, gelu, softmax
+from C_Functions import add, sub, mul, div, gelu, softmax, normalization
 
 class Layer:
     def __init__(self):
         self.weights = cu.zeros(shape=(input.shape[1], 1))
         self.biases = cu.zeros(shape=(1,))
         ...
-    def forward(self, input):
+    def __call__(self, input):
         return add(cu.matmul(input, self.weights), self.biases)
 
 class Dense(Layer):
@@ -14,7 +14,7 @@ class Dense(Layer):
         self.learning_rate = learning_rate
         self.weights = mul(cu.random.randn(inputs, outputs), 10e-3)
         self.biases = cu.zeros(outputs)
-    def forward(self, input):
+    def __call__(self, input):
         return add(cu.matmul(input, self.weights), self.biases)
     def backward(self, input, gradient_output):
         gradient_input = cu.dot(gradient_output, cu.transpose(self.weights))
@@ -31,7 +31,7 @@ class GeLU(Layer):
         res = cu.empty(x.shape)
         gelu((x[0].shape), (x[1].shape), (x, res))
         return res
-    def forward(self, input):
+    def __call__(self, input):
         return self.gelu(input)
     def backward(self, input, gradient_output):
         gelu_gradient = self.gelu(input)
@@ -44,7 +44,7 @@ class Softmax(Layer):
         res = cu.empty(x.shape)
         softmax((x[0].shape), (x[1].shape), (x, res))
         return res
-    def forward(self, input):
+    def __call__(self, input):
         return self.softmax(input)
     def backward(self, input, gradient_output):
         softmax_gradient = self.softmax(input)
@@ -57,7 +57,7 @@ class DotProductAttention(Layer):
         scores = div(cu.matmul(queries, keys), cu.sqrt(d_k))
         if mask is not None:
             scores = add(scores, mul(-1e9, mask))
-        weights = Softmax().softmax(scores)
+        weights = Softmax()(scores)
         return cu.matmul(weights, values)
 
 class MultiHeadAttention(Layer):
@@ -80,15 +80,20 @@ class MultiHeadAttention(Layer):
             x = x.reshape(cu.shape(x)[0], cu.shape(x)[1], self.d_k)
         return x
     def __call__(self, queries, keys, values, mask=None):
-        q_reshaped = self.reshape(self.W_q.forward(queries), self.heads, True)
-        k_reshaped = self.reshape(self.W_k.forward(keys), self.heads, True)
-        v_reshaped = self.reshape(self.W_v.forward(values), self.heads, True)
+        q_reshaped = self.reshape(self.W_q(queries), self.heads, True)
+        k_reshaped = self.reshape(self.W_k(keys), self.heads, True)
+        v_reshaped = self.reshape(self.W_v(values), self.heads, True)
         o_reshaped = self.attention(q_reshaped, k_reshaped, v_reshaped, self.d_k, mask)
         output = self.reshape(o_reshaped, self.heads, False)
-        return self.W_o.forward(output)
+        return self.W_o(output)
 
 class Normalization(Layer):
-    ...
+    def __init__(self):
+        ...
+    def __call__(self, input):
+        res = cu.empty(input.shape)
+        normalization((input[0].shape), (input[1].shape), (input, input.mean(), input.var(), res))
+        return res
 
 class Add:
     ...
