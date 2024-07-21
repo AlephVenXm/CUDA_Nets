@@ -10,11 +10,14 @@ class Layer:
         return add(cu.matmul(input, self.weights), self.biases)
 
 class Dense(Layer):
-    def __init__(self, inputs, outputs, learning_rate=0.1):
+    def __init__(self, inputs, outputs, learning_rate=0.1, activation=None):
         self.learning_rate = learning_rate
         self.weights = mul(cu.random.randn(inputs, outputs), 10e-3)
         self.biases = cu.zeros(outputs)
+        self.activation = activation
     def __call__(self, input):
+        if self.activation != None:
+            return self.activation(add(cu.matmul(input, self.weights), self.biases))
         return add(cu.matmul(input, self.weights), self.biases)
     def backward(self, input, gradient_output):
         gradient_input = cu.dot(gradient_output, cu.transpose(self.weights))
