@@ -1,4 +1,4 @@
-# CUDA_Nets
+# CUDA_Nets [WORK IN PROGRESS]
 [WIP] This repo implements various AI and ML functions with CUDA architecture on Python, uniting simplicity of Python and parallel computations with CUDA
 
 # Uniting Python and CUDA
