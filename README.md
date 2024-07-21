@@ -1,6 +1,8 @@
 # CUDA_Nets [WORK IN PROGRESS]
 [WIP] This repo implements various AI and ML functions with CUDA architecture on Python, uniting simplicity of Python and parallel computations with CUDA
 
+Main idea: keras-style API with some pytorch additions
+
 # Uniting Python and CUDA
 
 Interface of classes are written on Python, while all computation goes trough GPU using CUDA architecture
