@@ -68,10 +68,10 @@ class MultiHeadAttention(Layer):
         self.d_k = d_k
         self.d_v = d_v
         self.d_model = d_model
-        self.W_q = Dense(d_k)
-        self.W_k = Dense(d_k)
-        self.W_v = Dense(d_v)
-        self.W_o = Dense(d_model)
+        self.W_q = Dense(d_k, d_k)
+        self.W_k = Dense(d_k, d_v)
+        self.W_v = Dense(d_v, d_model)
+        self.W_o = Dense(d_model, d_model)
     def reshape(self, x, heads, flag=False):
         if flag:
             x = cu.reshape(x, shape=(cu.shape(x)[0], cu.shape(x)[1], heads, -1))
