@@ -58,5 +58,5 @@ class DotProductAttention():
         scores = div(cu.matmul(queries, keys), cu.sqrt(d_k))
         if mask is not None:
             scores = add(scores, mul(-1e9, mask))
-        weights = softmax(scores)
+        weights = Softmax().softmax(scores)
         return cu.matmul(weights, values)
