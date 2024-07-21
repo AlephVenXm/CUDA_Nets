@@ -95,6 +95,8 @@ class Normalization(Layer):
         normalization((input[0].shape), (input[1].shape), (input, input.mean(), input.var(), res))
         return res
 
-class Add:
-    ...
-
+class Add(Layer):
+    def __init__(self):
+        ...
+    def __call__(self, layers):
+        return cu.sum(layers) #layers == list
