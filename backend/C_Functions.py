@@ -56,3 +56,12 @@ void softmax(const double* x, double* y) {
     y[i] = numerator[threadIdx.x];
 }
 ''', 'softmax')
+
+#Functional layers
+normalization = cu.RawKernel(r'''
+extern "C" __global__
+void normalization(const double* in, const double* avg, const double* var, double* out) {
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    out[i] = (in[i]-avg[0])/(sqrt(var[0]));
+}
+''', 'normalization')
