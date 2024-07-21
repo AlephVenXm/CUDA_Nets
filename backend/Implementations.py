@@ -60,3 +60,30 @@ class DotProductAttention(Layer):
             scores = add(scores, mul(-1e9, mask))
         weights = Softmax().softmax(scores)
         return cu.matmul(weights, values)
+
+class MultiHeadAttention(Layer):
+    def __init__(self, heads, d_k, d_v, d_model):
+        self.attention = DotProductAttention()
+        self.heads = heads
+        self.d_k = d_k
+        self.d_v = d_v
+        self.d_model = d_model
+        self.W_q = Dense(d_k)
+        self.W_k = Dense(d_k)
+        self.W_v = Dense(d_v)
+        self.W_o = Dense(d_model)
+    def reshape(self, x, heads, flag=False):
+        if flag:
+            x = cu.reshape(x, shape=(cu.shape(x)[0], cu.shape(x)[1], heads, -1))
+            x = cu.transpose(x, perm=(0, 2, 1, 3))
+        else:
+            x = cu.transpose(x, perm=(0, 2, 1, 3))
+            x = cu.reshape(x, shape=(cu.shape(x)[0], cu.shape(x)[1], self.d_k))
+        return x
+    def __call__(self, queries, keys, values, mask=None):
+        q_reshaped = self.reshape_tensor(self.W_q(queries), self.heads, True)
+        k_reshaped = self.reshape_tensor(self.W_k(keys), self.heads, True)
+        v_reshaped = self.reshape_tensor(self.W_v(values), self.heads, True)
+        o_reshaped = self.attention(q_reshaped, k_reshaped, v_reshaped, self.d_k, mask)
+        output = self.reshape_tensor(o_reshaped, self.heads, False)
+        return self.W_o(output)
