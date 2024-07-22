@@ -20,6 +20,11 @@ class Initializer:
 
 #Activation class
 class Activation:
+    class ReLU(Layer):
+        def __call__(self, inputs -> cu.ndarray:
+            outputs = cu.empty(inputs.shape)
+            relu((inputs.shape[0],), (inputs.shape[1],), (inputs, outputs))
+            return outputs
     class GeLU(Layer):
         def __call__(self, inputs) -> cu.ndarray:
             outputs = cu.empty(inputs.shape)
