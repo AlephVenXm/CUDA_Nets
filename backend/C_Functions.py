@@ -27,7 +27,7 @@ sub = cu.ElementwiseKernel(
 )
 
 #Activations
-relu cu.RawKernel(r'''
+relu = cu.RawKernel(r'''
 extern "C" __global__
 void relu(const double* x, double* y) {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
