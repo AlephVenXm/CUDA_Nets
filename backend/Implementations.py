@@ -20,24 +20,24 @@ class Initializer:
 
 #Activation class
 class Activation:
-    class ReLU(Layer):
+    class ReLU:
         def __call__(self, inputs) -> cu.ndarray:
             outputs = cu.empty(inputs.shape)
             relu((inputs.shape[0],), (inputs.shape[1],), (inputs, outputs))
             return outputs
-    class GeLU(Layer):
+    class GeLU:
         def __call__(self, inputs) -> cu.ndarray:
             outputs = cu.empty(inputs.shape)
             gelu((inputs.shape[0],), (inputs.shape[1],), (inputs, outputs))
             return outputs
-    class Softmax(Layer):
+    class Softmax:
         def __call__(self, inputs) -> cu.ndarray:
             outputs = cu.empty(inputs.shape)
             softmax((inputs.shape[0],), (inputs.shape[1],), (inputs, outputs))
             return outputs
 
 #Standard dense layer class
-class Dense(Layer):
+class Dense:
     def __init__(self,
                 inputs: int, outputs: int,
                 activation=None,
@@ -54,11 +54,11 @@ class Dense(Layer):
             return self.activation(add(cu.matmul(input, self.weights), self.biases))
         return add(cu.matmul(input, self.weights), self.biases)
 
-class Embedding(Layer):
+class Embedding:
     ...
 
 #DotProductAttention layer class
-class DotProductAttention(Layer):
+class DotProductAttention:
     def __call__(self, queries, keys, values, d_k, mask=None) -> cu.ndarray:
         scores = div(cu.matmul(queries, keys), cu.sqrt(d_k))
         if mask is not None:
@@ -67,7 +67,7 @@ class DotProductAttention(Layer):
         return cu.matmul(weights, values)
 
 #MultiHeadAttention layer class
-class MultiHeadAttention(Layer):
+class MultiHeadAttention:
     def __init__(self, heads, d_k, d_v, d_model) -> None:
         self.attention = DotProductAttention()
         self.heads = heads
@@ -95,14 +95,14 @@ class MultiHeadAttention(Layer):
         return self.W_o(output)
 
 #Layer normalization class
-class Normalization(Layer):
-    def __call__(self, input) -> cu.ndarray:
+class Normalization:
+    def __call__(self, inputs) -> cu.ndarray:
         outputs = cu.empty(inputs.shape)
         normalization((inputs[0].shape), (inputs[1].shape), (inputs, inputs.mean(), inputs.var(), outputs))
         return outputs
 
 #Add for residual connection of layers
-class Add(Layer):
+class Add:
     def __call__(self, layers) -> cu.ndarray:
         sum = 0
         for layer in layers: sum = add(sum, layer)
