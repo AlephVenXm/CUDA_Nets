@@ -38,7 +38,7 @@ class Activation:
     class Sigmoid:
         def __call__(self, inputs, param=1.0) -> cu.ndarray:
             outputs = cu.empty(inputs.shape)
-            softmax((inputs.shape[0],), (inputs.shape[1],), (inputs, param, outputs))
+            sigmoid((inputs.shape[0],), (inputs.shape[1],), (inputs, param, outputs))
             return outputs
 
 #Standard dense layer class
