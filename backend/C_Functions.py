@@ -64,6 +64,14 @@ void softmax(const double* x, double* y) {
     y[i] = numerator[threadIdx.x];
 }
 ''', 'softmax')
+sigmoid = cu.RawKernel(r'''
+const double EXP = 2.71828182845;
+extern "C" __global__
+void sigmoid(const double* x, double param, double* y) {
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    y[i] = 1/(1+pow(pow(EXP, -x[i]), param));
+}
+''', 'sigmoid')
 
 #Functional layers
 normalization = cu.RawKernel(r'''
