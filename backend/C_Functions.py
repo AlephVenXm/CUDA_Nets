@@ -27,6 +27,14 @@ sub = cu.ElementwiseKernel(
 )
 
 #Activations
+relu cu.RawKernel(r'''
+extern "C" __global__
+void relu(const double* x, double* y) {
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    if (x[i] < 0) y[i] = 0;
+    else y[i] = x[i];
+}
+''', 'relu')
 gelu = cu.RawKernel(r'''
 const double PI = 3.14159265359;
 extern "C" __global__
