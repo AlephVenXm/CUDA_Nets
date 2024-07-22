@@ -3,6 +3,8 @@
 
 Main idea: keras-style API with some pytorch additions, and, possibly, some realizations of self-adaptive algorithms (e.g. *fixed* DynamicGradient, LogicMemoryUnit, AdaptiveNeuralConnections, Multi-Dimensional Weight Access-Storage System...)
 
+Current contributor(s): Aleph
+
 # Uniting Python and CUDA
 
 Interface of classes are written on Python, while all computation goes trough GPU using CUDA architecture
