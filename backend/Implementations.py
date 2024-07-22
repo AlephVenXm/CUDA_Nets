@@ -1,6 +1,7 @@
 import cupy as cu
 from C_Functions import *
 
+#Basic layer class
 class Layer:
     def __init__(self) -> None:
         self.weights = cu.zeros(shape=(input.shape[1], 1))
@@ -8,6 +9,7 @@ class Layer:
     def __call__(self, input) -> cu.ndarray:
         return add(cu.matmul(input, self.weights), self.biases)
 
+#Kernel and bias initializer class
 class Initializer:
     class RandomNormal:
         def __call__(self, inputs, outputs) -> cu.ndarray:
@@ -16,6 +18,7 @@ class Initializer:
         def __call__(self, inputs) -> cu.ndarray:
             return cu.zeros(inputs)
 
+#Activation class
 class Activation:
     class GeLU(Layer):
         def __call__(self, inputs) -> cu.ndarray:
@@ -28,6 +31,7 @@ class Activation:
             softmax((inputs.shape[0],), (inputs.shape[1],), (inputs, outputs))
             return outputs
 
+#Standard dense layer class
 class Dense(Layer):
     def __init__(self,
                 inputs: int, outputs: int,
@@ -48,6 +52,7 @@ class Dense(Layer):
 class Embedding(Layer):
     ...
 
+#DotProductAttention layer class
 class DotProductAttention(Layer):
     def __call__(self, queries, keys, values, d_k, mask=None) -> cu.ndarray:
         scores = div(cu.matmul(queries, keys), cu.sqrt(d_k))
@@ -56,6 +61,7 @@ class DotProductAttention(Layer):
         weights = Activation.Softmax()(scores)
         return cu.matmul(weights, values)
 
+#MultiHeadAttention layer class
 class MultiHeadAttention(Layer):
     def __init__(self, heads, d_k, d_v, d_model) -> None:
         self.attention = DotProductAttention()
@@ -83,12 +89,14 @@ class MultiHeadAttention(Layer):
         output = self.reshape(o_reshaped, self.heads, False)
         return self.W_o(output)
 
+#Layer normalization class
 class Normalization(Layer):
     def __call__(self, input) -> cu.ndarray:
         outputs = cu.empty(inputs.shape)
         normalization((inputs[0].shape), (inputs[1].shape), (inputs, inputs.mean(), inputs.var(), outputs))
         return outputs
 
+#Add for residual connection of layers
 class Add(Layer):
     def __call__(self, layers) -> cu.ndarray:
         sum = 0
