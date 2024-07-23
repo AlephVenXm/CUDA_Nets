@@ -106,40 +106,72 @@ class Embedding:
 
 #DotProductAttention layer class
 class DotProductAttention:
-    def __call__(self, queries, keys, values, d_k, mask=None) -> cu.ndarray:
+    def __call__(self, queries, keys, d_k, mask=None) -> cu.ndarray:
         scores = div(cu.matmul(queries, keys), cu.sqrt(d_k))
         if mask is not None:
             scores = add(scores, mul(-1e9, mask))
         weights = Activation.Softmax()(scores)
-        return cu.matmul(weights, values)
+        return weights
 
 #MultiHeadAttention layer class
 class MultiHeadAttention:
-    def __init__(self, heads, d_k, d_v, d_model) -> None:
-        self.attention = DotProductAttention()
+    def __init__(self, heads: int, d_mdl: int) -> None:
         self.heads = heads
-        self.d_k = d_k
-        self.d_v = d_v
-        self.d_model = d_model
-        self.W_q = Dense(d_k, d_k)
-        self.W_k = Dense(d_k, d_v)
-        self.W_v = Dense(d_v, d_model)
-        self.W_o = Dense(d_model, d_model)
-    def reshape(self, x, heads, flag=False) -> cu.ndarray:
-        if flag:
-            x = x.reshape(cu.shape(x)[0], cu.shape(x)[1], heads, -1)
-            x = x.transpose(0, 2, 1, 3)
-        else:
-            x = x.transpose(0, 2, 1, 3)
-            x = x.reshape(cu.shape(x)[0], cu.shape(x)[1], self.d_k)
-        return x
-    def __call__(self, queries, keys, values, mask=None) -> cu.ndarray:
-        q_reshaped = self.reshape(self.W_q(queries), self.heads, True)
-        k_reshaped = self.reshape(self.W_k(keys), self.heads, True)
-        v_reshaped = self.reshape(self.W_v(values), self.heads, True)
-        o_reshaped = self.attention(q_reshaped, k_reshaped, v_reshaped, self.d_k, mask)
-        output = self.reshape(o_reshaped, self.heads, False)
-        return self.W_o(output)
+        self.d_mdl = d_mdl
+
+        self.attention = DotProductAttention()
+
+        self.d_k = self.d_mdl // heads
+        self.d_q = self.d_mdl // heads
+        self.d_v = self.d_mdl // heads
+
+        self.linear_k = Dense(self.d_mdl, self.d_k * heads)
+        self.linear_q = Dense(self.d_mdl, self.d_q * heads)
+        self.linear_v = Dense(self.d_mdl, self.d_v * heads)
+        self.linear_o = Dense(self.d_mdl, self.d_v * heads)
+    def forward_split(self, inputs) -> cu.ndarray:
+        batch_size = inputs.shape[0]
+        return inputs.reshape(batch_size, -1, self.heads, self.d_k).transpose(0, 2, 1, 3)
+    def backward_split(self, inputs) -> cu.ndarray:
+        batch_size = inputs.shape[0]
+        return inputs.transpose(0, 2, 1, 3).reshape(batch_size, -1, self.heads * self.d_k)
+    def __call__(self, q, k, v, mask=None) -> cu.ndarray:
+        self.len_k = k.shape[1]
+        self.len_q = q.shape[1]
+        self.len_v = v.shape[1]
+
+        f_k = self.linear_k(k)
+        f_q = self.linear_q(q)
+        f_v = self.linear_v(v)
+
+        self.k = self.forward_split(f_k)
+        self.q = self.forward_split(f_q)
+        self.v = self.forward_split(f_v)
+
+        self.weights = self.attention(self.q, self.k, self.d_k, mask=mask)
+
+        out = cu.matmul(self.weights, self.v)
+        concat = self.backward_split(out)
+        f_o = self.linear_o(concat)
+
+        return f_o
+    def backward(self, loss):
+        loss = self.linear_o.backward(loss)
+        loss = self.forward_split(loss)
+        v_loss = cu.matmul(self.scores.transpose(0, 1, 3, 2), loss)    
+        loss = self.attention(loss, self.v.transpose(0, 1, 3, 2), self.d_k)
+        q_loss = cu.matmul(loss, self.k)
+        k_loss = cu.matmul(self.q.transpose(0, 1, 3, 2), loss).transpose(0, 1, 3, 2)
+        
+        v_loss = self.backward_split(v_loss)
+        q_loss = self.backward_split(q_loss)
+        k_loss = self.backward_split(k_loss)
+
+        v_loss = self.linear_v(v_loss)
+        q_loss = self.linear_q(q_loss)
+        k_loss = self.linear_k(k_loss)
+
+        return q_loss, k_loss, v_loss
 
 #Layer normalization class
 class Normalization:
