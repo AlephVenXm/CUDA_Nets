@@ -25,6 +25,12 @@ sub = cu.ElementwiseKernel(
     'z = x - y',
     'sub'
 )
+linear = cu.ElementwiseKernel(
+    'float64 k, float64 x, float64 b',
+    'float64 y',
+    'z = k * x + b',
+    'linear'
+)
 
 #Activations
 relu = cu.RawKernel(r'''
