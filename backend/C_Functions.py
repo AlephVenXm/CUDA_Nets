@@ -28,7 +28,7 @@ sub = cu.ElementwiseKernel(
 linear = cu.ElementwiseKernel(
     'float64 k, float64 x, float64 b',
     'float64 y',
-    'z = k * x + b',
+    'y = k * x + b',
     'linear'
 )
 
