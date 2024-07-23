@@ -7,7 +7,7 @@ class Layer:
         self.weights = cu.zeros(shape=(input.shape[1], 1))
         self.biases = cu.zeros(shape=(1,))
     def __call__(self, input) -> cu.ndarray:
-        return add(cu.matmul(input, self.weights), self.biases)
+        return linear(self.weights, input, self.biases)
 
 #Kernel and bias initializer class
 class Initializer:
@@ -69,8 +69,8 @@ class Dense:
     def __call__(self, input) -> cu.ndarray:
         self.in_data = input
         if self.activation != None:
-            return self.activation(add(cu.matmul(input, self.weights), self.biases))
-        return add(cu.matmul(input, self.weights), self.biases)
+            return self.activation(linear(self.weights, input, self.biases))
+        return linear(self.weights, input, self.biases)
     def backward(self, loss) -> cu.ndarray:
         self.gradient_weights = cu.matmul(self.in_data.transpose(0, 2, 1), loss).sum(axis=0)
         self.gradient_bias = loss.sum(axis=(0, 1))
