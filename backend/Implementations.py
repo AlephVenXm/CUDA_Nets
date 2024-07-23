@@ -25,21 +25,33 @@ class Activation:
             outputs = cu.empty(inputs.shape)
             relu((inputs.shape[0],), (inputs.shape[1],), (inputs, outputs))
             return outputs
+        def backward(self, gradient) -> cu.ndarray:
+            ...
+            return self(gradient)
     class GeLU:
         def __call__(self, inputs) -> cu.ndarray:
             outputs = cu.empty(inputs.shape)
             gelu((inputs.shape[0],), (inputs.shape[1],), (inputs, outputs))
             return outputs
+        def backward(self, gradient) -> cu.ndarray:
+            ...
+            return self(gradient)
     class Softmax:
         def __call__(self, inputs) -> cu.ndarray:
             outputs = cu.empty(inputs.shape)
             softmax((inputs.shape[0],), (inputs.shape[1],), (inputs, outputs))
             return outputs
+        def backward(self, gradient) -> cu.ndarray:
+            ...
+            return self(gradient)
     class Sigmoid:
         def __call__(self, inputs, param=1.0) -> cu.ndarray:
             outputs = cu.empty(inputs.shape)
             sigmoid((inputs.shape[0],), (inputs.shape[1],), (inputs, param, outputs))
             return outputs
+        def backward(self, gradient) -> cu.ndarray:
+            ...
+            return self(gradient)
 
 #Standard dense layer class
 class Dense:
@@ -55,12 +67,42 @@ class Dense:
         if use_bias:
             self.biases = bias_initializer(outputs)
     def __call__(self, input) -> cu.ndarray:
+        self.in_data = input
         if self.activation != None:
             return self.activation(add(cu.matmul(input, self.weights), self.biases))
         return add(cu.matmul(input, self.weights), self.biases)
+    def backward(self, loss) -> cu.ndarray:
+        self.gradient_weights = cu.matmul(self.in_data.transpose(0, 2, 1), loss).sum(axis=0)
+        self.gradient_bias = loss.sum(axis=(0, 1))
+        out_loss = cu.dot(loss, self.w.T)
+        return out_loss
+    def update_weights(self, layer):
+        ...
 
+#Embedding layer class
 class Embedding:
-    ...
+    def __init__(self, in_dim: int, out_dim: int) -> None:
+        self.in_dim = in_dim
+        self.out_dim = out_dim
+        self.weights = Initializer.RandomNormal()(self.in_dim, self.out_dim)
+        self.v = Initializer.Zeros()(self.weights.shape)
+        self.m = Initializer.Zeros()(self.weights.shape)
+    def __call__(self, inputs) -> cu.ndarray:
+        self.in_data = inputs
+        self.in_length = len(self.in_data[0])
+        self.batch_size = len(self.in_data)
+        self.in_data = self.encode(self.in_data)
+        self.out_data = cu.dot(self.in_data, self.weights)
+        return self.out_data
+    def encode(self, labels) -> cu.ndarray:
+        labels = labels.astype(cu.int64)
+        prepare = Initializer.Zeros()((labels.size, self.in_dim))
+        prepare[cu.arange(labels.size), labels.reshape(1, -1)] = 1
+        return prepare.reshape(self.batch_size, self.in_length, self.in_dim)
+    def backward(self, loss) -> None:
+        self.gradient_weights = cu.matmul(cu.transpose(self.in_data, axes=(0, 2, 1)), loss).sum(axis=0)
+    def update_weights(self, layer):
+        ...
 
 #DotProductAttention layer class
 class DotProductAttention:
