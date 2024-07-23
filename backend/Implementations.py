@@ -106,11 +106,13 @@ class Embedding:
 
 #DotProductAttention layer class
 class DotProductAttention:
-    def __call__(self, queries, keys, d_k, mask=None) -> cu.ndarray:
-        scores = div(cu.matmul(queries, keys), cu.sqrt(d_k))
+    def __call__(self, q, k, v=None, d_k, mask=None, use_values=True) -> cu.ndarray:
+        scores = div(cu.matmul(q, k), cu.sqrt(d_k))
         if mask is not None:
             scores = add(scores, mul(-1e9, mask))
         weights = Activation.Softmax()(scores)
+        if use_values:
+            return cu.matmul(weights, v)
         return weights
 
 #MultiHeadAttention layer class
@@ -148,7 +150,7 @@ class MultiHeadAttention:
         self.q = self.forward_split(f_q)
         self.v = self.forward_split(f_v)
 
-        self.weights = self.attention(self.q, self.k, self.d_k, mask=mask)
+        self.weights = self.attention(self.q, self.k, None, self.d_k, mask=mask, use_values=False)
 
         out = cu.matmul(self.weights, self.v)
         concat = self.backward_split(out)
@@ -159,7 +161,7 @@ class MultiHeadAttention:
         loss = self.linear_o.backward(loss)
         loss = self.forward_split(loss)
         v_loss = cu.matmul(self.scores.transpose(0, 1, 3, 2), loss)    
-        loss = self.attention(loss, self.v.transpose(0, 1, 3, 2), self.d_k)
+        loss = self.attention(loss, self.v.transpose(0, 1, 3, 2), None, self.d_k, use_values=False)
         q_loss = cu.matmul(loss, self.k)
         k_loss = cu.matmul(self.q.transpose(0, 1, 3, 2), loss).transpose(0, 1, 3, 2)
         
