@@ -1,30 +1,29 @@
 import os
 if os.environ["USE_CUDA"] == "1":
     import cupy as cu
-    if os.environ["USE_C"] == "1":
-        from C_Functions import sub, div, mul
+    from Operation import Sub, Mul, Div
 else:
     import numpy as cu
 from Activation import Softmax
 
 class MeanAbsoluteError:
     def __call__(self, inputs, targets):
-        if os.environ["USE_CUDA"] == "1" and os.environ["USE_C"] == "1":
-            return sub(targets, inputs)
+        if os.environ["USE_CUDA"] == "1":
+            return Sub(targets, inputs)
         return targets - inputs
     def derivative(self, inputs, targets):
-        if os.environ["USE_CUDA"] == "1" and os.environ["USE_C"] == "1":
-            return -1 * (sub(targets, inputs)) / cu.prod(inputs.shape[1:])
+        if os.environ["USE_CUDA"] == "1":
+            return -1 * (Sub(targets, inputs)) / cu.prod(inputs.shape[1:])
         return -1 * cu.abs(targets - inputs) / cu.prod(inputs.shape[1:])
 
 class MeanSquaredError:
     def __call__(self, inputs, targets):
-        if os.environ["USE_CUDA"] == "1" and os.environ["USE_C"] == "1":
-            return cu.power(sub(targets, inputs), 2)
+        if os.environ["USE_CUDA"] == "1":
+            return cu.power(Sub(targets, inputs), 2)
         return cu.power(targets - inputs, 2)
     def derivative(self, inputs, targets):
-        if os.environ["USE_CUDA"] == "1" and os.environ["USE_C"] == "1":
-            return -2 * (sub(targets, inputs)) / cu.prod(inputs.shape[1:])
+        if os.environ["USE_CUDA"] == "1":
+            return -2 * (Sub(targets, inputs)) / cu.prod(inputs.shape[1:])
         return -2 * (targets - inputs) / cu.prod(inputs.shape[1:])
 
 class CrossEntropy:
@@ -42,10 +41,10 @@ class CrossEntropy:
 
 class CategoricalCrossEntropy:
     def __call__(self, inputs, targets):
-        if os.environ["USE_CUDA"] == "1" and os.environ["USE_C"] == "1":
-            return mul(-targets, cu.log(inputs))
+        if os.environ["USE_CUDA"] == "1":
+            return Mul(-targets, cu.log(inputs))
         return -targets * cu.log(inputs)
     def derivative(self, inputs, targets):
-        if os.environ["USE_CUDA"] == "1" and os.environ["USE_C"] == "1":
-            return div(-targets, inputs)
+        if os.environ["USE_CUDA"] == "1":
+            return Div(-targets, inputs)
         return -targets / inputs
