@@ -97,13 +97,13 @@ def Linear(k, x, b, thread: int=10, dtype=None) -> cu.ndarray:
         raise ValueError
     if dtype is None:
         dtype=x.dtype
-    z = cu.zeros(x.shape, dtype=dtype)
+    y = cu.zeros(x.shape, dtype=dtype)
     rank = len(x.shape)
-    @cuda.jit(f'void({k.dtype}[{':,'*rank}], {x.dtype}[{':,'*rank}], {b.dtype}[{':,'*rank}], {z.dtype}[{':,'*rank}])')
-    def linear(k, x, b, z):
+    @cuda.jit(f'void({k.dtype}[{':,'*rank}], {x.dtype}[{':,'*rank}], {b.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}])')
+    def linear(k, x, b, y):
         idx = cuda.grid(rank)
-        z[idx] = k[idx] * x[idx] + b[idx]
+        y[idx] = k[idx] * x[idx] + b[idx]
     threads = (thread,) * rank
-    blocks = tuple([math.ceil(z.shape[i] / threads[i]) for i in range(rank)])
-    linear[blocks, threads](k, x, b, z)
-    return z
+    blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
+    linear[blocks, threads](k, x, b, y)
+    return y
