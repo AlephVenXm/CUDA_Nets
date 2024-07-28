@@ -1,7 +1,7 @@
 import os
 if os.environ["USE_CUDA"] == "1":
     import cupy as cu
-    from Operation import Sub, Mul, Div
+    from Operation import MatSub, MatMul, MatDiv
 else:
     import numpy as cu
 from Activation import Softmax
