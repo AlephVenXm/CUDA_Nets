@@ -96,7 +96,7 @@ def Linear(k, x, b, thread: int=10, dtype=None) -> cu.ndarray:
     if len(k.shape) > 3 or len(x.shape) > 3 or len(b.shape) > 3:
         raise ValueError(f"Cannot operate with arrays with rank >= 4: Got arrays of rank: {len(k.shape)}, {len(x.shape)}, {len(b.shape)}")
     if dtype is None:
-        dtype=x.dtype
+        dtype = x.dtype
     shape = max(k.shape, x.shape, b.shape)
     rank = len(shape)
     y = cu.zeros(shape, dtype=dtype)
