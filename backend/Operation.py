@@ -11,6 +11,15 @@ from numba import cuda
 ### ///////////////////////////////////////////////// ###
 
 def MatAdd(x, y, thread: int=10, dtype=None) -> cu.ndarray:
+    '''
+    Element Wisely adds first value to second
+
+    X, Y -> Matrix or a single Value with rank < 4
+
+    Thread -> number of Threads per one Block. Scales with max rank of Values
+
+    Dtype -> dtype of Values in Return
+    '''
     if x.shape != y.shape and (x.size > 1 and y.size > 1):
         raise ValueError(f"Cannot add arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
     if len(x.shape) > 3 or len(y.shape) > 3:
@@ -31,6 +40,15 @@ def MatAdd(x, y, thread: int=10, dtype=None) -> cu.ndarray:
     return z
 
 def MatSub(x, y, thread: int=10, dtype=None) -> cu.ndarray:
+    '''
+    Element Wisely subtracts first value to second
+
+    X, Y -> Matrix or a single Value with rank < 4
+
+    Thread -> number of Threads per one Block. Scales with max rank of Values
+
+    Dtype -> dtype of Values in Return
+    '''
     if x.shape != y.shape and (x.size > 1 and y.size > 1):
         raise ValueError(f"Cannot add arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
     if len(x.shape) > 3 or len(y.shape) > 3:
@@ -51,6 +69,15 @@ def MatSub(x, y, thread: int=10, dtype=None) -> cu.ndarray:
     return z
 
 def MatMul(x, y, thread: int=10, dtype=None) -> cu.ndarray:
+    '''
+    Element Wisely multiplies first value to second
+
+    X, Y -> Matrix or a single Value with rank < 4
+
+    Thread -> number of Threads per one Block. Scales with max rank of Values
+
+    Dtype -> dtype of Values in Return
+    '''
     if x.shape != y.shape and (x.size > 1 and y.size > 1):
         raise ValueError(f"Cannot add arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
     if len(x.shape) > 3 or len(y.shape) > 3:
@@ -71,6 +98,15 @@ def MatMul(x, y, thread: int=10, dtype=None) -> cu.ndarray:
     return z
 
 def MatDiv(x, y, thread: int=10, dtype=None) -> cu.ndarray:
+    '''
+    Element Wisely divides first value to second
+
+    X, Y -> Matrix or a single Value with rank < 4
+
+    Thread -> number of Threads per one Block. Scales with max rank of Values
+
+    Dtype -> dtype of Values in Return
+    '''
     if x.shape != y.shape and (x.size > 1 and y.size > 1):
         raise ValueError(f"Cannot add arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
     if len(x.shape) > 3 or len(y.shape) > 3:
@@ -91,6 +127,15 @@ def MatDiv(x, y, thread: int=10, dtype=None) -> cu.ndarray:
     return z
 
 def Linear(k, x, b, thread: int=10, dtype=None) -> cu.ndarray:
+    '''
+    Element Wise Linear function: kx + b
+
+    K, X, B -> Matrix or a single Value with rank < 4
+
+    Thread -> number of Threads per one Block. Scales with max rank of Values
+    
+    Dtype -> dtype of Values in Return
+    '''
     if (k.shape != x.shape or k.shape != b.shape or b.shape != x.shape) and (k.size > 1 and x.size > 1 and b.size > 1):
         raise ValueError(f"Cannot operate with arrays of different shapes: Got arrays of shape: {k.shape}, {x.shape}, {b.shape}")
     if len(k.shape) > 3 or len(x.shape) > 3 or len(b.shape) > 3:
