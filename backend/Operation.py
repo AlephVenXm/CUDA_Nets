@@ -5,105 +5,107 @@ else:
     import numpy as cu
 from numba import cuda
 
-### //////////////////////////////////////// ###
-### /// OPERATIONS SUPPORT MATRIXES ONLY /// ###
-### //////////////////////////////////////// ###
-def Add(x, y, thread: int=10, dtype=None) -> cu.ndarray:
-    if x.shape != y.shape:
-        print(f"Cannot add arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
-        raise ValueError
+### ///////////////////////////////////////////////// ###
+### /// OPERATIONS SUPPORT MATRIXES WITH MATRIXES /// ###
+### ///      AND SINGLE VALUES WITH MATRIXES      /// ###
+### ///////////////////////////////////////////////// ###
+
+def MatAdd(x, y, thread: int=10, dtype=None) -> cu.ndarray:
+    if x.shape != y.shape and (x.size > 1 and y.size > 1):
+        raise ValueError(f"Cannot add arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
     if len(x.shape) > 3 or len(y.shape) > 3:
-        print(f"Cannot operate with arrays with rank >= 4: Got arrays of rank: {len(x.shape)}, {len(y.shape)}")
-        raise ValueError
+        raise ValueError(f"Cannot operate with arrays with rank >= 4: Got arrays of rank: {len(x.shape)}, {len(y.shape)}")
     if dtype is None:
-        dtype=x.dtype
-    z = cu.zeros(x.shape, dtype=dtype)
-    rank = len(x.shape)
+        dtype = x.dtype
+    shape = max(x.shape, y.shape)
+    rank = len(shape)
+    z = cu.zeros(shape, dtype=dtype)
+    PAD = lambda x : cu.full(shape, x) if x.size == 1 else x
     @cuda.jit(f'void({x.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}], {z.dtype}[{':,'*rank}])')
-    def add(x, y, z):
+    def matadd(x, y, z):
         idx = cuda.grid(rank)
         z[idx] = x[idx] + y[idx]
     threads = (thread,) * rank
     blocks = tuple([math.ceil(z.shape[i] / threads[i]) for i in range(rank)])
-    add[blocks, threads](x, y, z)
+    matadd[blocks, threads](PAD(x), PAD(y), z)
     return z
 
-def Sub(x, y, thread: int=10, dtype=None) -> cu.ndarray:
-    if x.shape != y.shape:
-        print(f"Cannot subtract arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
-        raise ValueError
+def MatSub(x, y, thread: int=10, dtype=None) -> cu.ndarray:
+    if x.shape != y.shape and (x.size > 1 and y.size > 1):
+        raise ValueError(f"Cannot add arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
     if len(x.shape) > 3 or len(y.shape) > 3:
-        print(f"Cannot operate with arrays with rank >= 4: Got arrays of rank: {len(x.shape)}, {len(y.shape)}")
-        raise ValueError
+        raise ValueError(f"Cannot operate with arrays with rank >= 4: Got arrays of rank: {len(x.shape)}, {len(y.shape)}")
     if dtype is None:
-        dtype=x.dtype
-    z = cu.zeros(x.shape, dtype=dtype)
-    rank = len(x.shape)
+        dtype = x.dtype
+    shape = max(x.shape, y.shape)
+    rank = len(shape)
+    z = cu.zeros(shape, dtype=dtype)
+    PAD = lambda x : cu.full(shape, x) if x.size == 1 else x
     @cuda.jit(f'void({x.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}], {z.dtype}[{':,'*rank}])')
-    def sub(x, y, z):
+    def matsub(x, y, z):
         idx = cuda.grid(rank)
         z[idx] = x[idx] - y[idx]
     threads = (thread,) * rank
     blocks = tuple([math.ceil(z.shape[i] / threads[i]) for i in range(rank)])
-    sub[blocks, threads](x, y, z)
+    matsub[blocks, threads](PAD(x), PAD(y), z)
     return z
 
-def Mul(x, y, thread: int=10, dtype=None) -> cu.ndarray:
-    if x.shape != y.shape:
-        print(f"Cannot multiply arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
-        raise ValueError
+def MatMul(x, y, thread: int=10, dtype=None) -> cu.ndarray:
+    if x.shape != y.shape and (x.size > 1 and y.size > 1):
+        raise ValueError(f"Cannot add arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
     if len(x.shape) > 3 or len(y.shape) > 3:
-        print(f"Cannot operate with arrays with rank >= 4: Got arrays of rank: {len(x.shape)}, {len(y.shape)}")
-        raise ValueError
+        raise ValueError(f"Cannot operate with arrays with rank >= 4: Got arrays of rank: {len(x.shape)}, {len(y.shape)}")
     if dtype is None:
-        dtype=x.dtype
-    z = cu.zeros(x.shape, dtype=dtype)
-    rank = len(x.shape)
+        dtype = x.dtype
+    shape = max(x.shape, y.shape)
+    rank = len(shape)
+    z = cu.zeros(shape, dtype=dtype)
+    PAD = lambda x : cu.full(shape, x) if x.size == 1 else x
     @cuda.jit(f'void({x.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}], {z.dtype}[{':,'*rank}])')
-    def mul(x, y, z):
+    def matmul(x, y, z):
         idx = cuda.grid(rank)
         z[idx] = x[idx] * y[idx]
     threads = (thread,) * rank
     blocks = tuple([math.ceil(z.shape[i] / threads[i]) for i in range(rank)])
-    mul[blocks, threads](x, y, z)
+    matmul[blocks, threads](PAD(x), PAD(y), z)
     return z
 
-def Div(x, y, thread: int=10, dtype=None) -> cu.ndarray:
-    if x.shape != y.shape:
-        print(f"Cannot divide arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
-        raise ValueError
+def MatDiv(x, y, thread: int=10, dtype=None) -> cu.ndarray:
+    if x.shape != y.shape and (x.size > 1 and y.size > 1):
+        raise ValueError(f"Cannot add arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
     if len(x.shape) > 3 or len(y.shape) > 3:
-        print(f"Cannot operate with arrays with rank >= 4: Got arrays of rank: {len(x.shape)}, {len(y.shape)}")
-        raise ValueError
+        raise ValueError(f"Cannot operate with arrays with rank >= 4: Got arrays of rank: {len(x.shape)}, {len(y.shape)}")
     if dtype is None:
-        dtype=x.dtype
-    z = cu.zeros(x.shape, dtype=dtype)
-    rank = len(x.shape)
+        dtype = x.dtype
+    shape = max(x.shape, y.shape)
+    rank = len(shape)
+    z = cu.zeros(shape, dtype=dtype)
+    PAD = lambda x : cu.full(shape, x) if x.size == 1 else x
     @cuda.jit(f'void({x.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}], {z.dtype}[{':,'*rank}])')
-    def div(x, y, z):
+    def matdiv(x, y, z):
         idx = cuda.grid(rank)
         z[idx] = x[idx] / y[idx]
     threads = (thread,) * rank
     blocks = tuple([math.ceil(z.shape[i] / threads[i]) for i in range(rank)])
-    div[blocks, threads](x, y, z)
+    matdiv[blocks, threads](PAD(x), PAD(y), z)
     return z
 
 def Linear(k, x, b, thread: int=10, dtype=None) -> cu.ndarray:
-    if k.shape != x.shape or k.shape != b.shape or b.shape != x.shape:
-        print(f"Cannot operate with arrays of different shapes: Got arrays of shape: {k.shape}, {x.shape}, {b.shape}")
-        raise ValueError
+    if (k.shape != x.shape or k.shape != b.shape or b.shape != x.shape) and (k.size > 1 and x.size > 1 and b.size > 1):
+        raise ValueError(f"Cannot operate with arrays of different shapes: Got arrays of shape: {k.shape}, {x.shape}, {b.shape}")
     if len(k.shape) > 3 or len(x.shape) > 3 or len(b.shape) > 3:
-        print(f"Cannot operate with arrays with rank >= 4: Got arrays of rank: {len(k.shape)}, {len(x.shape)}, {len(b.shape)}")
-        raise ValueError
+        raise ValueError(f"Cannot operate with arrays with rank >= 4: Got arrays of rank: {len(k.shape)}, {len(x.shape)}, {len(b.shape)}")
     if dtype is None:
         dtype=x.dtype
-    y = cu.zeros(x.shape, dtype=dtype)
-    rank = len(x.shape)
+    shape = max(k.shape, x.shape, b.shape)
+    rank = len(shape)
+    y = cu.zeros(shape, dtype=dtype)
+    PAD = lambda x : cu.full(shape, x) if x.size == 1 else x
     @cuda.jit(f'void({k.dtype}[{':,'*rank}], {x.dtype}[{':,'*rank}], {b.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}])')
     def linear(k, x, b, y):
         idx = cuda.grid(rank)
         y[idx] = k[idx] * x[idx] + b[idx]
     threads = (thread,) * rank
     blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
-    linear[blocks, threads](k, x, b, y)
+    linear[blocks, threads](PAD(k), PAD(x), PAD(b), y)
     return y
