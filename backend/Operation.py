@@ -20,6 +20,8 @@ def MatAdd(x, y, thread: int=10, dtype=None) -> cu.ndarray:
 
     Dtype -> dtype of Values in Return
     '''
+    if x.size == 1 and y.size == 1:
+        raise ValueError(f"One of values should be array. It is MATRIX`Add, not just add")
     if x.shape != y.shape and (x.size > 1 and y.size > 1):
         raise ValueError(f"Cannot add arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
     if len(x.shape) > 3 or len(y.shape) > 3:
@@ -49,8 +51,10 @@ def MatSub(x, y, thread: int=10, dtype=None) -> cu.ndarray:
 
     Dtype -> dtype of Values in Return
     '''
+    if x.size == 1 and y.size == 1:
+        raise ValueError(f"One of values should be array. It is MATRIX`Subtract, not just subtract")
     if x.shape != y.shape and (x.size > 1 and y.size > 1):
-        raise ValueError(f"Cannot add arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
+        raise ValueError(f"Cannot subtract arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
     if len(x.shape) > 3 or len(y.shape) > 3:
         raise ValueError(f"Cannot operate with arrays with rank >= 4: Got arrays of rank: {len(x.shape)}, {len(y.shape)}")
     if dtype is None:
@@ -78,8 +82,10 @@ def MatMul(x, y, thread: int=10, dtype=None) -> cu.ndarray:
 
     Dtype -> dtype of Values in Return
     '''
+    if x.size == 1 and y.size == 1:
+        raise ValueError(f"One of values should be array. It is MATRIX`Multiply, not just multiply")
     if x.shape != y.shape and (x.size > 1 and y.size > 1):
-        raise ValueError(f"Cannot add arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
+        raise ValueError(f"Cannot multiply arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
     if len(x.shape) > 3 or len(y.shape) > 3:
         raise ValueError(f"Cannot operate with arrays with rank >= 4: Got arrays of rank: {len(x.shape)}, {len(y.shape)}")
     if dtype is None:
@@ -107,8 +113,10 @@ def MatDiv(x, y, thread: int=10, dtype=None) -> cu.ndarray:
 
     Dtype -> dtype of Values in Return
     '''
+    if x.size == 1 and y.size == 1:
+        raise ValueError(f"One of values should be array. It is MATRIX`Divide, not just divide")
     if x.shape != y.shape and (x.size > 1 and y.size > 1):
-        raise ValueError(f"Cannot add arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
+        raise ValueError(f"Cannot divide arrays of different shapes: Got arrays of shape: {x.shape}, {y.shape}")
     if len(x.shape) > 3 or len(y.shape) > 3:
         raise ValueError(f"Cannot operate with arrays with rank >= 4: Got arrays of rank: {len(x.shape)}, {len(y.shape)}")
     if dtype is None:
@@ -126,7 +134,7 @@ def MatDiv(x, y, thread: int=10, dtype=None) -> cu.ndarray:
     matdiv[blocks, threads](PAD(x), PAD(y), z)
     return z
 
-def Linear(k, x, b, thread: int=10, dtype=None) -> cu.ndarray:
+def MatLinear(k, x, b, thread: int=10, dtype=None) -> cu.ndarray:
     '''
     Element Wise Linear function: kx + b
 
@@ -136,6 +144,8 @@ def Linear(k, x, b, thread: int=10, dtype=None) -> cu.ndarray:
     
     Dtype -> dtype of Values in Return
     '''
+    if k.size == 1 and x.size == 1 and b.size == 1:
+        raise ValueError(f"One of values should be array. It is MATRIX`Linear, not just linear")
     if (k.shape != x.shape or k.shape != b.shape or b.shape != x.shape) and (k.size > 1 and x.size > 1 and b.size > 1):
         raise ValueError(f"Cannot operate with arrays of different shapes: Got arrays of shape: {k.shape}, {x.shape}, {b.shape}")
     if len(k.shape) > 3 or len(x.shape) > 3 or len(b.shape) > 3:
