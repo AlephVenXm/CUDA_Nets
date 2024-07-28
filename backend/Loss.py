@@ -9,21 +9,21 @@ from Activation import Softmax
 class MeanAbsoluteError:
     def __call__(self, inputs, targets):
         if os.environ["USE_CUDA"] == "1":
-            return Sub(targets, inputs)
+            return MatSub(targets, inputs)
         return targets - inputs
     def derivative(self, inputs, targets):
         if os.environ["USE_CUDA"] == "1":
-            return -1 * (Sub(targets, inputs)) / cu.prod(inputs.shape[1:])
+            return -1 * (MatSub(targets, inputs)) / cu.prod(inputs.shape[1:])
         return -1 * cu.abs(targets - inputs) / cu.prod(inputs.shape[1:])
 
 class MeanSquaredError:
     def __call__(self, inputs, targets):
         if os.environ["USE_CUDA"] == "1":
-            return cu.power(Sub(targets, inputs), 2)
+            return cu.power(MatSub(targets, inputs), 2)
         return cu.power(targets - inputs, 2)
     def derivative(self, inputs, targets):
         if os.environ["USE_CUDA"] == "1":
-            return -2 * (Sub(targets, inputs)) / cu.prod(inputs.shape[1:])
+            return -2 * (MatSub(targets, inputs)) / cu.prod(inputs.shape[1:])
         return -2 * (targets - inputs) / cu.prod(inputs.shape[1:])
 
 class CrossEntropy:
@@ -42,9 +42,9 @@ class CrossEntropy:
 class CategoricalCrossEntropy:
     def __call__(self, inputs, targets):
         if os.environ["USE_CUDA"] == "1":
-            return Mul(-targets, cu.log(inputs))
+            return MatMul(-targets, cu.log(inputs))
         return -targets * cu.log(inputs)
     def derivative(self, inputs, targets):
         if os.environ["USE_CUDA"] == "1":
-            return Div(-targets, inputs)
+            return MatDiv(-targets, inputs)
         return -targets / inputs
