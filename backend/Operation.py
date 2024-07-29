@@ -1,8 +1,4 @@
-import os, math
-if os.environ["USE_CUDA"] == "1":
-    import cupy as cu
-else:
-    import numpy as cu
+import cupy as cu, math
 from numba import cuda
 
 ### ///////////////////////////////////////////////// ###
