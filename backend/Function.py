@@ -126,6 +126,23 @@ def ReSech(x, thread: int=10, dtype=None) -> cu.ndarray:
     resech[blocks, threads](x, y)
     return y
 
+def Sigmoid(x, thread: int=10, dtype=None) -> cu.ndarray:
+    if len(x.shape) > 3:
+        raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
+    if dtype is None:
+        dtype = x.dtype
+    shape = x.shape
+    rank = len(shape)
+    y = cu.zeros(shape, dtype=dtype)
+    @cuda.jit(f'void({x.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}])')
+    def sigmoid(x, y):
+        idx = cuda.grid(rank)
+        y[idx] = 1/(1+math.exp(-x[idx]))
+    threads = (thread,) * rank
+    blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
+    sigmoid[blocks, threads](x, y)
+    return y
+
 def sSigmoid(x, thread: int=10, dtype=None) -> cu.ndarray:
     if len(x.shape) > 3:
         raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
