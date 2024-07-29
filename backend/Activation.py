@@ -6,6 +6,10 @@ if os.environ["USE_CUDA"] == "1":
 else:
     import numpy as cu
 
+### /////////////////////////////////// ###
+### /// ACTIVATION FUNCTION CLASSES /// ###
+### /////////////////////////////////// ###
+
 class ReLU:
     def __call__(self, inputs) -> cu.ndarray:
         self.inputs = inputs
