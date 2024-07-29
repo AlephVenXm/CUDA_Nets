@@ -27,7 +27,7 @@ def MatAdd(x, y, thread: int=10, dtype=None) -> cu.ndarray:
     shape = max(x.shape, y.shape)
     rank = len(shape)
     z = cu.zeros(shape, dtype=dtype)
-    PAD = lambda x : cu.full(shape, x) if x.size == 1 else x
+    PAD = lambda x : cu.full(shape, x) if x.size != shape else x
     @cuda.jit(f'void({x.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}], {z.dtype}[{':,'*rank}])')
     def matadd(x, y, z):
         idx = cuda.grid(rank)
@@ -58,7 +58,7 @@ def MatSub(x, y, thread: int=10, dtype=None) -> cu.ndarray:
     shape = max(x.shape, y.shape)
     rank = len(shape)
     z = cu.zeros(shape, dtype=dtype)
-    PAD = lambda x : cu.full(shape, x) if x.size == 1 else x
+    PAD = lambda x : cu.full(shape, x) if x.size != shape else x
     @cuda.jit(f'void({x.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}], {z.dtype}[{':,'*rank}])')
     def matsub(x, y, z):
         idx = cuda.grid(rank)
@@ -89,7 +89,7 @@ def MatMul(x, y, thread: int=10, dtype=None) -> cu.ndarray:
     shape = max(x.shape, y.shape)
     rank = len(shape)
     z = cu.zeros(shape, dtype=dtype)
-    PAD = lambda x : cu.full(shape, x) if x.size == 1 else x
+    PAD = lambda x : cu.full(shape, x) if x.size != shape else x
     @cuda.jit(f'void({x.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}], {z.dtype}[{':,'*rank}])')
     def matmul(x, y, z):
         idx = cuda.grid(rank)
@@ -120,7 +120,7 @@ def MatDiv(x, y, thread: int=10, dtype=None) -> cu.ndarray:
     shape = max(x.shape, y.shape)
     rank = len(shape)
     z = cu.zeros(shape, dtype=dtype)
-    PAD = lambda x : cu.full(shape, x) if x.size == 1 else x
+    PAD = lambda x : cu.full(shape, x) if x.size != shape else x
     @cuda.jit(f'void({x.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}], {z.dtype}[{':,'*rank}])')
     def matdiv(x, y, z):
         idx = cuda.grid(rank)
