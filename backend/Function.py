@@ -27,7 +27,7 @@ def Linear(k, x, b, thread: int=10, dtype=None) -> cu.ndarray:
     shape = max(k.shape, x.shape, b.shape)
     rank = len(shape)
     y = cu.zeros(shape, dtype=dtype)
-    PAD = lambda x : cu.full(shape, x) if x.size == 1 else x
+    PAD = lambda x : cu.full(shape, x) if x.shape != shape else x
     @cuda.jit(f'void({k.dtype}[{':,'*rank}], {x.dtype}[{':,'*rank}], {b.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}])')
     def linear(k, x, b, y):
         idx = cuda.grid(rank)
@@ -48,7 +48,7 @@ def Tanh(x, thread: int=10, dtype=None) -> cu.ndarray:
     @cuda.jit(f'void({x.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}])')
     def tanh(x, y):
         idx = cuda.grid(rank)
-        y[idx] = (math.exp(x[idx]) - math.exp(-x[idx])) / (math.exp(x[idx] + math.exp(x[idx])))
+        y[idx] = (math.exp(x[idx]) - math.exp(-x[idx])) / (math.exp(x[idx]) + math.exp(-x[idx]))
     threads = (thread,) * rank
     blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
     tanh[blocks, threads](x, y)
@@ -67,7 +67,7 @@ def sTanh(x, a, b, thread: int=10, dtype=None) -> cu.ndarray:
     @cuda.jit(f'void({x.dtype}[{':,'*rank}], {a.dtype}, {b.dtype}, {y.dtype}[{':,'*rank}])')
     def stanh(x, a, b, y):
         idx = cuda.grid(rank)
-        y[idx] = a * ((math.exp(b * x[idx]) - math.exp(b * -x[idx])) / (math.exp(b * x[idx] + math.exp(b * x[idx]))))
+        y[idx] = a * ((math.exp(b * x[idx]) - math.exp(b * -x[idx])) / (math.exp(b * x[idx]) + math.exp(b * -x[idx])))
     threads = (thread,) * rank
     blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
     stanh[blocks, threads](x, a, b, y)
@@ -126,23 +126,6 @@ def ReSech(x, thread: int=10, dtype=None) -> cu.ndarray:
     resech[blocks, threads](x, y)
     return y
 
-def Sigmoid(x, thread: int=10, dtype=None) -> cu.ndarray:
-    if len(x.shape) > 3:
-        raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
-    if dtype is None:
-        dtype = x.dtype
-    shape = x.shape
-    rank = len(shape)
-    y = cu.zeros(shape, dtype=dtype)
-    @cuda.jit(f'void({x.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}])')
-    def sigmoid(x, y):
-        idx = cuda.grid(rank)
-        y[idx] = 1/(1+math.exp(-x[idx]))
-    threads = (thread,) * rank
-    blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
-    sigmoid[blocks, threads](x, y)
-    return y
-
 def sSigmoid(x, thread: int=10, dtype=None) -> cu.ndarray:
     if len(x.shape) > 3:
         raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
@@ -174,31 +157,129 @@ def pTanh(x, a, thread: int=10, dtype=None) -> cu.ndarray:
     def ptanh(x, a, y):
         idx = cuda.grid(rank)
         if x[idx] >= 0:
-            y[idx] = (math.exp(x[idx]) - math.exp(-x[idx])) / (math.exp(x[idx] + math.exp(x[idx])))
+            y[idx] = (math.exp(x[idx]) - math.exp(-x[idx])) / (math.exp(x[idx]) + math.exp(-x[idx]))
         else:
-            y[idx] = a * ((math.exp(x[idx]) - math.exp(-x[idx])) / (math.exp(x[idx] + math.exp(x[idx]))))
+            y[idx] = a * ((math.exp(x[idx]) - math.exp(-x[idx])) / (math.exp(x[idx]) + math.exp(-x[idx])))
     threads = (thread,) * rank
     blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
     ptanh[blocks, threads](x, a, y)
     return y
 
-def Hexpo():
-    ...
+def Hexpo(x, a, b, c, d, thread: int=10, dtype=None) -> cu.ndarray:
+    if a.size > 1 or b.size > 1 or c.size > 1 or d.size > 1:
+        raise ValueError("Parameters of Hexpo should be single values, not arrays")
+    if len(x.shape) > 3:
+        raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
+    if dtype is None:
+        dtype = x.dtype
+    shape = x.shape
+    rank = len(shape)
+    y = cu.zeros(shape, dtype=dtype)
+    @cuda.jit(f'void({x.dtype}[{':,'*rank}], {a.dtype}, {b.dtype}, {c.dtype}, {d.dtype}, {y.dtype}[{':,'*rank}])')
+    def hexpo(x, a, b, c, d, y):
+        idx = cuda.grid(rank)
+        if x[idx] >= 0:
+            y[idx] = -a * (math.exp(-x[idx]/b) - 1)
+        else:
+            y[idx] = c * (math.exp(x[idx]/d) - 1)
+    threads = (thread,) * rank
+    blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
+    hexpo[blocks, threads](x, a, b, c, d, y)
+    return y
 
-def SiLU():
-    ...
+def SiLU(x, thread: int=10, dtype=None) -> cu.ndarray:
+    if len(x.shape) > 3:
+        raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
+    if dtype is None:
+        dtype = x.dtype
+    shape = x.shape
+    rank = len(shape)
+    y = cu.zeros(shape, dtype=dtype)
+    @cuda.jit(f'void({x.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}])')
+    def silu(x, y):
+        idx = cuda.grid(rank)
+        y[idx] = x[idx] * 1/(1+math.exp(-x[idx]))
+    threads = (thread,) * rank
+    blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
+    silu[blocks, threads](x, y)
+    return y
 
-def ISigmoid():
-    ...
+def ISigmoid(x, a, thread: int=10, dtype=None) -> cu.ndarray:
+    if a.size > 1:
+        raise ValueError("Parameter of ISigmoid should be single value, not array")
+    if len(x.shape) > 3:
+        raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
+    if dtype is None:
+        dtype = x.dtype
+    shape = x.shape
+    rank = len(shape)
+    y = cu.zeros(shape, dtype=dtype)
+    @cuda.jit(f'void({x.dtype}[{':,'*rank}], {a.dtype}, {y.dtype}[{':,'*rank}])')
+    def isigmoid(x, a, y):
+        idx = cuda.grid(rank)
+        if x[idx] >= a:
+            y[idx] = a * (x[idx] - a) + 1/(1+math.exp(-a))
+        elif -a < x[idx] < a:
+            y[idx] = 1/(1+math.exp(-x[idx]))
+        else:
+            y[idx] = a * (x[idx] + a) + 1/(1+math.exp(-a))
+    threads = (thread,) * rank
+    blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
+    isigmoid[blocks, threads](x, a, y)
+    return y
 
-def LiSHT():
-    ...
+def LiSHT(x, thread: int=10, dtype=None) -> cu.ndarray:
+    if len(x.shape) > 3:
+        raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
+    if dtype is None:
+        dtype = x.dtype
+    shape = x.shape
+    rank = len(shape)
+    y = cu.zeros(shape, dtype=dtype)
+    @cuda.jit(f'void({x.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}])')
+    def lisht(x, y):
+        idx = cuda.grid(rank)
+        y[idx] = x[idx] * ((math.exp(x[idx]) - math.exp(-x[idx])) / (math.exp(x[idx]) + math.exp(-x[idx])))
+    threads = (thread,) * rank
+    blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
+    lisht[blocks, threads](x, y)
+    return y
 
-def Elliott():
-    ...
+def Elliott(x, thread: int=10, dtype=None) -> cu.ndarray:
+    if len(x.shape) > 3:
+        raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
+    if dtype is None:
+        dtype = x.dtype
+    shape = x.shape
+    rank = len(shape)
+    y = cu.zeros(shape, dtype=dtype)
+    @cuda.jit(f'void({x.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}])')
+    def elliott(x, y):
+        idx = cuda.grid(rank)
+        y[idx] = (0.5 + x[idx]) / (1 + abs(x[idx])) + 0.5
+    threads = (thread,) * rank
+    blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
+    elliott[blocks, threads](x, y)
+    return y
 
-def SRS():
-    ...
+def SRS(x, a, b, thread: int=10, dtype=None) -> cu.ndarray:
+    if a.size > 1 or b.size > 1:
+        raise ValueError("Parameters of SRS should be single values, not arrays")
+    if len(x.shape) > 3:
+        raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
+    if dtype is None:
+        dtype = x.dtype
+    shape = x.shape
+    rank = len(shape)
+    y = cu.zeros(shape, dtype=dtype)
+    @cuda.jit(f'void({x.dtype}[{':,'*rank}], {a.dtype}, {b.dtype}, {y.dtype}[{':,'*rank}])')
+    def srs(x, a, b, y):
+        idx = cuda.grid(rank)
+        y[idx] = x[idx] / (x[idx] / a + math.exp(-x[idx]/b))
+    threads = (thread,) * rank
+    blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
+    srs[blocks, threads](x, a, b, y)
+    return y
 
 def ReLU(x, thread: int=10, dtype=None) -> cu.ndarray:
     if len(x.shape) > 3:
@@ -220,29 +301,193 @@ def ReLU(x, thread: int=10, dtype=None) -> cu.ndarray:
     relu[blocks, threads](x, y)
     return y
 
-def LReLU():
-    ...
+def LReLU(x, thread: int=10, dtype=None) -> cu.ndarray:
+    if len(x.shape) > 3:
+        raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
+    if dtype is None:
+        dtype = x.dtype
+    shape = x.shape
+    rank = len(shape)
+    y = cu.zeros(shape, dtype=dtype)
+    @cuda.jit(f'void({x.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}])')
+    def lrelu(x, y):
+        idx = cuda.grid(rank)
+        if x[idx] >= 0:
+            y[idx] = x[idx]
+        else:
+            y[idx] = 0.01 * x[idx]
+    threads = (thread,) * rank
+    blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
+    lrelu[blocks, threads](x, y)
+    return y
 
-def PReLU():
-    ...
+def PReLU(x, p, thread: int=10, dtype=None) -> cu.ndarray:
+    if p.size > 1:
+        raise ValueError("Parameters of PReLU should be single value, not array")
+    if len(x.shape) > 3:
+        raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
+    if dtype is None:
+        dtype = x.dtype
+    shape = x.shape
+    rank = len(shape)
+    y = cu.zeros(shape, dtype=dtype)
+    @cuda.jit(f'void({x.dtype}[{':,'*rank}], {p.dtype}, {y.dtype}[{':,'*rank}])')
+    def prelu(x, p, y):
+        idx = cuda.grid(rank)
+        if x[idx] >= 0:
+            y[idx] = x[idx]
+        else:
+            y[idx] = p * x[idx]
+    threads = (thread,) * rank
+    blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
+    prelu[blocks, threads](x, p, y)
+    return y
 
-def RReLU():
-    ...
+def RReLU(x, thread: int=10, dtype=None) -> cu.ndarray:
+    if len(x.shape) > 3:
+        raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
+    if dtype is None:
+        dtype = x.dtype
+    shape = x.shape
+    rank = len(shape)
+    y = cu.zeros(shape, dtype=dtype)
+    @cuda.jit(f'void({x.dtype}[{':,'*rank}], {dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}])')
+    def rrelu(x, rng, y):
+        idx = cuda.grid(rank)
+        if x[idx] >= 0:
+            y[idx] = x[idx]
+        else: 
+            y[idx] = rng[idx] * x[idx]
+    threads = (thread,) * rank
+    blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
+    rng = cu.random.uniform(0.0, 1.0, shape, dtype=dtype)
+    rrelu[blocks, threads](x, rng, y)
+    return y
 
-def CReLU():
-    ...
+def CReLU(x, thread: int=10, dtype=None) -> list[cu.ndarray, cu.ndarray]:
+    if len(x.shape) > 3:
+        raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
+    if dtype is None:
+        dtype = x.dtype
+    shape = x.shape
+    rank = len(shape)
+    y_positive = cu.zeros(shape, dtype=dtype)
+    y_negative = cu.zeros(shape, dtype=dtype)
+    @cuda.jit(f'void({x.dtype}[{':,'*rank}], {y_positive.dtype}[{':,'*rank}], {y_negative.dtype}[{':,'*rank}])')
+    def crelu(x, y_positive, y_negative):
+        idx = cuda.grid(rank)
+        if x[idx] >= 0:
+            y_positive[idx] = x[idx]
+            y_negative[idx] = 0
+        else:
+            y_positive[idx] = 0
+            y_negative[idx] = x[idx]
+    threads = (thread,) * rank
+    blocks = tuple([math.ceil(shape[i] / threads[i]) for i in range(rank)])
+    crelu[blocks, threads](x, y_positive, y_negative)
+    return [y_positive, y_negative]
 
-def FReLU():
-    ...
+def PTELU(x, a, b, thread: int=10, dtype=None) -> cu.ndarray:
+    if a.size > 1 or b.size > 1:
+        raise ValueError("Parameters of PTELU should be single values, not arrays")
+    if len(x.shape) > 3:
+        raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
+    if dtype is None:
+        dtype = x.dtype
+    shape = x.shape
+    rank = len(shape)
+    y = cu.zeros(shape, dtype=dtype)
+    @cuda.jit(f'void({x.dtype}[{':,'*rank}], {a.dtype}, {b.dtype}, {y.dtype}[{':,'*rank}])')
+    def ptelu(x, a, b, y):
+        idx = cuda.grid(rank)
+        if x[idx] >= 0:
+            y[idx] = x[idx]
+        else:
+            y[idx] = a * ((math.exp(b * x[idx]) - math.exp(b * -x[idx])) / (math.exp(b * x[idx]) + math.exp(b * -x[idx])))
+    threads = (thread,) * rank
+    blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
+    ptelu[blocks, threads](x, a, b, y)
+    return y
 
-def RTReLU():
-    ...
+def FReLU(x, b, thread: int=10, dtype=None) -> cu.ndarray:
+    if b.size > 1:
+        raise ValueError("Parameters of FReLU should be single value, not array")
+    if len(x.shape) > 3:
+        raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
+    if dtype is None:
+        dtype = x.dtype
+    shape = x.shape
+    rank = len(shape)
+    y = cu.zeros(shape, dtype=dtype)
+    @cuda.jit(f'void({x.dtype}[{':,'*rank}], {b.dtype}, {y.dtype}[{':,'*rank}])')
+    def frelu(x, b, y):
+        idx = cuda.grid(rank)
+        if x[idx] >= 0:
+            y[idx] = x[idx] + b
+        else:
+            y[idx] = 0 + b
+    threads = (thread,) * rank
+    blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
+    frelu[blocks, threads](x, b, y)
+    return y
 
-def ABReLU():
-    ...
+def RTReLU(x, a, thread: int=10, dtype=None) -> cu.ndarray:
+    if a.size > 1:
+        raise ValueError("Parameters of RTReLU should be single value, not array")
+    if len(x.shape) > 3:
+        raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
+    if dtype is None:
+        dtype = x.dtype
+    shape = x.shape
+    rank = len(shape)
+    y = cu.zeros(shape, dtype=dtype)
+    @cuda.jit(f'void({x.dtype}[{':,'*rank}], {a.dtype}, {y.dtype}[{':,'*rank}])')
+    def rtrelu(x, a, y):
+        idx = cuda.grid(rank)
+        if x[idx] + a > 0:
+            y[idx] = x[idx] + a
+        else:
+            y[idx] = 0
+    threads = (thread,) * rank
+    blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
+    rtrelu[blocks, threads](x, a, y)
+    return y
 
-def DualReLU():
-    ...
+def ABReLU(x, b, thread: int=10, dtype=None) -> cu.ndarray:
+    if b.size > 1:
+        raise ValueError("Parameters of ABReLU should be single value, not array")
+    if len(x.shape) > 3:
+        raise ValueError(f"Cannot operate with array with rank >= 4: Got array of rank: {len(x.shape)}")
+    if dtype is None:
+        dtype = x.dtype
+    shape = x.shape
+    rank = len(shape)
+    y = cu.zeros(shape, dtype=dtype)
+    @cuda.jit(f'void({x.dtype}[{':,'*rank}], {b.dtype}, {y.dtype}[{':,'*rank}])')
+    def abrelu(x, b, y):
+        idx = cuda.grid(rank)
+        y[idx] = max(0, x[idx] - b)
+    threads = (thread,) * rank
+    blocks = tuple([math.ceil(y.shape[i] / threads[i]) for i in range(rank)])
+    abrelu[blocks, threads](x, b, y)
+    return y
+
+def DualReLU(x, y, thread: int=10, dtype=None) -> cu.ndarray:
+    if len(x.shape) > 3 or len(y.shape) > 3:
+        raise ValueError(f"Cannot operate with arrays with rank >= 4: Got arrays of rank: {len(x.shape)}, {len(y.shape)}")
+    if dtype is None:
+        dtype = x.dtype
+    shape = max(x.shape, y.shape)
+    rank = len(shape)
+    z = cu.zeros(shape, dtype=dtype)
+    @cuda.jit(f'void({x.dtype}[{':,'*rank}], {y.dtype}[{':,'*rank}], {z.dtype}[{':,'*rank}])')
+    def dualrelu(x, y, z):
+        idx = cuda.grid(rank)
+        z[idx] = max(0, x[idx]) - max(0, y[idx])   
+    threads = (thread,) * rank
+    blocks = tuple([math.ceil(z.shape[i] / threads[i]) for i in range(rank)])
+    dualrelu[blocks, threads](x, y, z)
+    return z
 
 def PairedReLU():
     ...
