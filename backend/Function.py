@@ -1,6 +1,100 @@
 import cupy as cu, math
 from numba import cuda
 
+### //////////////////////////////////////////// ###
+### /// STRUCT CUDA FUNCTION FROM ITS LAMBDA /// ###
+### ///          EXTREMELY UNSTABLE          /// ###
+### //////////////////////////////////////////// ###
+
+class Struct:
+    '''
+    FUNC -> Python lambda function
+    
+    Arguments when built -> (values, thread: int=10, dtype=None) by default
+    
+    Lambda function can contain if/else statements and also works with python math module
+
+    Lambda function arguments should not contain indexes, sums, prods and etc.
+    
+
+    Example ReLU:
+    
+    my_function = Struct(lambda x : max(0, x))
+    
+    same_with_if_else = Struct(lambda x : x if x >= 0 else 0)
+    
+    exec(my_function.build())
+    
+    exec(same_with_if_else.build())
+    
+    x = cu.linspace(-1.0, 1.0, 10)
+    
+    y = my_function(x, thread=32, dtype=cu.float64)
+    
+    z = same_with_if_else(x, dtype=cu.int64)
+
+
+    Example Linear:
+    linear_function = Struct(lambda k, x, b : k*x+b)
+    
+    exec(linear_function.build())
+
+    k = cu.random.uniform(-5, 5, 100).reshape(10, 10)
+    
+    x = cu.linspace(-1.0, 1.0, 100).reshape(10, 10)
+    
+    b = cu.float64(5)
+
+    z = linear_function(k, x, b)
+    '''
+    def __init__(self, func):
+        self.function = func
+        self.name = inspect.getsource(func).partition("=")[0].replace(" ", "")
+        funcStr = str(inspect.getsourcelines(func)[0])
+        self.func_str = funcStr.strip("['\\n']").split(" = ")[1].replace("Struct", "").replace("(", "", 1)[:-1]
+        self.variables_str = self.func_str.partition("lambda")[2].partition(":")[0]
+        self.variables = self.variables_str.split()
+        exec(self.build())
+    def build(self):
+        blank = ""
+        for i in self.variables_str.replace(",", "").split():
+            blank += str(i) + "[idx], "
+        blank_0 = ""
+        for i in self.variables_str.replace(",", "").split():
+            blank_0 += str(i) + ".shape, "
+        blank_1 = ""
+        for i in self.variables_str.replace(",", "").split():
+            blank_1 += str(i) + ".size == 1 or "
+        blank_2 = ""
+        for i in self.variables_str.replace(",", "").split():
+            blank_2 += "{" + str(i) + ".dtype}" + "[{':,'*rank}], "
+        blank_3 = ""
+        for i in self.variables_str.replace(",", "").split():
+            blank_3 += "PAD(" + str(i) + "), "
+        blank_4 = ""
+        for i in self.variables_str.replace(",", "").split():
+            blank_4 += str(i) + ", "
+        blank_5 = "{UNIQUE_RESULT_MATRIX.dtype}[{':,'*rank}]"
+        func = f'''def {self.name}({blank_4}thread: int=10, dtype=None):
+            if {blank_1[:-5]}:
+                raise ValueError("One of values should be array")
+            if dtype is None:
+                dtype = {str(blank_4[0])}.dtype
+            shape = max({blank_0[:-2]}, ())
+            rank = len(shape)
+            UNIQUE_RESULT_MATRIX = cu.zeros(shape, dtype=dtype)
+            PAD = lambda x : cu.full(shape, x) if x.shape != shape else x
+            @cuda.jit(f'void({blank_2}{blank_5})')
+            def function({blank_4}UNIQUE_RESULT_MATRIX):
+               idx = cuda.grid(rank) 
+               cfunc = {self.func_str}
+               UNIQUE_RESULT_MATRIX[idx] = cfunc({blank[:-2]})
+            threads = (thread,) * rank
+            blocks = tuple([math.ceil(UNIQUE_RESULT_MATRIX.shape[i] / threads[i]) for i in range(rank)])
+            function[blocks, threads]({blank_3}UNIQUE_RESULT_MATRIX)
+            return UNIQUE_RESULT_MATRIX'''
+        return func
+
 ### //////////////////////////////////////// ###
 ### ///       ACTIVATION FUNCTIONS       /// ###
 ### /// https://arxiv.org/pdf/2109.14545 /// ###
