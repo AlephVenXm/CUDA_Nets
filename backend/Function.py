@@ -1,4 +1,4 @@
-import cupy as cu, math
+import cupy as cu, math, inspect
 from numba import cuda
 
 ### //////////////////////////////////////////// ###
