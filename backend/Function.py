@@ -35,6 +35,7 @@ class Struct:
 
 
     Example Linear:
+    
     linear_function = Struct(lambda k, x, b : k*x+b)
     
     exec(linear_function.build())
