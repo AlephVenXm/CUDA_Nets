@@ -60,7 +60,6 @@ class Function:
             return result''')
         return eval(f'''func({values}, thread=thread, dtype=dtype)''')
 
-
 ### //////////////////////////////////////// ###
 ### ///       ACTIVATION FUNCTIONS       /// ###
 ### /// https://arxiv.org/pdf/2109.14545 /// ###
@@ -123,7 +122,7 @@ def PReLU(x, p, thread: int=10, dtype=None) -> cu.ndarray:
 def RReLU(x, low: float=0.0, high: float=1.0, thread: int=10, dtype=None) -> cu.ndarray:
     return Function("lambda x, rng : x if x >= 0 else rng * x")(x, cu.random.uniform(low, high, x.shape), thread=thread, dtype=dtype)
 
-def CReLU(x, thread: int=10, dtype=None) -> cu.ndarray:
+def CReLU(x, thread: int=10, dtype=None) -> list[cu.ndarray, cu.ndarray]:
     return [Function("lambda x : x if x >= 0 else 0")(x, thread=thread, dtype=dtype),
             Function("lambda x : 0 if x >= 0 else x")(x, thread=thread, dtype=dtype)]
 
