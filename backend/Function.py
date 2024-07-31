@@ -60,6 +60,53 @@ class Function:
             return result''')
         return eval(f'''func({values}, thread=thread, dtype=dtype)''')
 
+class AdvancedFunction:
+    '''
+    ... Dont ask me why
+
+    This one ADVANCED`function able to return tuple of results
+
+    e.g. AdvancedFunction("lambda x, y : (x + y, x - y)")(x, y)
+
+    will return tuple of (res_0, res_1)
+
+    Amount of inputs and output values can be any
+    '''
+    def __init__(self, function):
+        self.function = function
+        self.f = eval(function)
+    def __call__(self, *args, thread: int=10, dtype=None):
+        outputs = 1
+        try: outputs = len(eval(f"self.f({''.join(["1, " for _ in range(len(args))])[:-2]})"))
+        except: TypeError
+        finally: ...
+        val = ["val_" + f"{i}" for i in range(len(args))]
+        res = ["res_" + f"{i}" for i in range(outputs)]
+        for i in range(len(args)):
+            exec(f"{val[i]} = args[i]")
+        values = ''.join([str(i) + ", " for i in val[:len(args)]])[:-2]
+        results = ''.join([str(i) + ", " for i in res[:outputs]])[:-2]
+        idx_values = ''.join([str(i) + "[idx], " for i in val[:len(args)]])[:-2]
+        idx_results = ''.join([str(i) + "[idx], " for i in res[:outputs]])[:-2]
+        padded_values = ''.join(["PAD(" + str(i) + "), " for i in val[:len(args)]])[:-2]
+        exec(f'''def func({values}, thread: int=10, dtype=None):
+            if dtype is None:
+                dtype = val_0.dtype
+            shape = max({''.join([str(i) + ".shape, " for i in val[:len(args)]])[:-2]}, ())
+            rank = len(shape)
+            {results} = {''.join(["cu.zeros(shape, dtype=dtype), " for _ in range(outputs)])[:-2]}
+            PAD = lambda x : cu.full(shape, x) if x.shape != shape else x
+            @cuda.jit(f'void({''.join(["{" + str(i) + ".dtype}[{':,'*rank}], " for i in val[:len(args)]])[:-2]}, {''.join(["{" + str(i) + ".dtype}[{':,'*rank}], " for i in res[:outputs]])[:-2]})')
+            def function({values}, {results}):
+               idx = cuda.grid(rank) 
+               cfunc = {self.function}
+               {idx_results} = cfunc({idx_values})
+            threads = (thread,) * rank
+            blocks = tuple([math.ceil(res_0.shape[i] / threads[i]) for i in range(rank)])
+            function[blocks, threads]({padded_values}, {results})
+            return {results}''')
+        return eval(f'''func({values}, thread=thread, dtype=dtype)''')
+
 ### //////////////////////////////////////// ###
 ### ///       ACTIVATION FUNCTIONS       /// ###
 ### /// https://arxiv.org/pdf/2109.14545 /// ###
