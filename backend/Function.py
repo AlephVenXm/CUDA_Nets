@@ -134,7 +134,7 @@ def FReLU(x, b, thread: int=10, dtype=None) -> cu.ndarray:
     return Function("lambda x, b : x + b if x >= 0 else 0 + b")(x, b, thread=thread, dtype=dtype)
 
 def RTReLU(x, a, thread: int=10, dtype=None) -> cu.ndarray:
-    return Function("lambda x : x + a if (x + a) > 0 else 0")(x, a, thread=thread, dtype=dtype)
+    return Function("lambda x, a : x + a if (x + a) > 0 else 0")(x, a, thread=thread, dtype=dtype)
 
 def ABReLU(x, b, thread: int=10, dtype=None) -> cu.ndarray:
     return Function("lambda x, b : max(0, x - b)")(x, b, thread=thread, dtype=dtype)
