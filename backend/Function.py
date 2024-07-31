@@ -34,8 +34,8 @@ class Function:
         self.function = function
         self.f = eval(function)
         self.amount_args = len(function.split("lambda", 1)[1].split(":", 1)[0].split(","))
-        self.build(self.amount_args)
-    def build(self, amount_args):
+        self.define(self.amount_args)
+    def define(self, amount_args):
         self.outputs = 1
         try: self.outputs = len(eval(f"self.f({''.join(["1, " for _ in range(amount_args)])[:-2]})"))
         except: TypeError
