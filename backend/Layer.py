@@ -175,7 +175,7 @@ class MultiHeadAttention:
     def backward(self, loss):
         loss = self.linear_o.backward(loss)
         loss = self.forward_split(loss)
-        v_loss = cu.matmul(self.scores.transpose(0, 1, 3, 2), loss)    
+        v_loss = cu.matmul(self.weights.transpose(0, 1, 3, 2), loss)    
         loss = self.attention(loss, self.v.transpose(0, 1, 3, 2), None, self.d_k, use_values=False)
         q_loss = cu.matmul(loss, self.k)
         k_loss = cu.matmul(self.q.transpose(0, 1, 3, 2), loss).transpose(0, 1, 3, 2)
