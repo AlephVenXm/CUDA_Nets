@@ -44,7 +44,7 @@ class Function:
         padded_values = ''.join(["PAD(" + str(i) + "), " for i in alph[:len(args)]])[:-2]
         exec(f'''def func({values}, thread: int=10, dtype=None):
             if dtype is None:
-                dtype = val_1.dtype
+                dtype = val_0.dtype
             shape = max({''.join([str(i) + ".shape, " for i in alph[:len(args)]])[:-2]}, ())
             rank = len(shape)
             result = cu.zeros(shape, dtype=dtype)
