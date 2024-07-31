@@ -28,7 +28,7 @@ class Function:
 
     One of arguments SHOULD be matrix
 
-    Returns matrix or matrixes
+    Returns matrix or tuple of matrixes
     '''
     def __init__(self, function):
         self.function = function
