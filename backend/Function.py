@@ -3,7 +3,7 @@ from numba import cuda
 
 ### //////////////////////////////////////////// ###
 ### /// STRUCT CUDA FUNCTION FROM ITS LAMBDA /// ###
-### ///               STABLE                 /// ###
+### ///                STABLE                /// ###
 ### //////////////////////////////////////////// ###
 
 class Function:
