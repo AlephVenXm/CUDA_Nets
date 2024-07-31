@@ -3,77 +3,38 @@ from numba import cuda
 
 ### //////////////////////////////////////////// ###
 ### /// STRUCT CUDA FUNCTION FROM ITS LAMBDA /// ###
-### ///            LESS UNSTABLE             /// ###
+### ///               STABLE                 /// ###
 ### //////////////////////////////////////////// ###
 
 class Function:
     '''
-    Makes a Function class from python lambda 
+    A Function class.
 
-    Function works on call of class
+    Converts python lambda function into CUDA function
 
-    Lambda function should be a string, e.g. "lambda x, y : x * y"
+    On initialization of class lambda function should be passed as string
 
-    Lambda can contain if/else statements, math module and any amount of values
+    e.g. add = Function("lambda x, y : x + y")
 
-    Lambda should not contain indexes, sums, prods and etc.
+    On call it works like lambda function: add(x, y, thread, dtype)
 
-    Example ReLU:
+    thread and dtype values are unnecessary, but can be configurated
 
-    relu = Function("lambda x : x if x >= 0 else 0")
-        or Function("lambda x : max(0, x)")
-    
-    x = cu.linspace(-1.0, 1.0, 10)
+    Works with multiple outputs: function = Function("lambda x, y : (x - y, x + y)")
 
-    y = relu(x, dtype=cu.float64)
+    Amount of inputs and outputs can be any
 
-    Example Linear:
+    Doesn't work with matrixes with rank >= 4 (for now(?))
 
-    x = cu.linspace(-1.0, 1.0, 10)
+    One of arguments SHOULD be matrix
 
-    y = Function("lambda k, x, b : k*x+b")(x)
-    '''
-    def __init__(self, function):
-        self.function = function
-    def __call__(self, *args, thread: int=10, dtype=None):
-        alph = ["val_" + f"{i}" for i in range(len(args))]
-        values = ''.join([str(i) + ", " for i in alph[:len(args)]])[:-2]
-        idx_values = ''.join([str(i) + "[idx], " for i in alph[:len(args)]])[:-2]
-        padded_values = ''.join(["PAD(" + str(i) + "), " for i in alph[:len(args)]])[:-2]
-        exec(f'''def func({values}, thread: int=10, dtype=None):
-            if dtype is None:
-                dtype = val_0.dtype
-            shape = max({''.join([str(i) + ".shape, " for i in alph[:len(args)]])[:-2]}, ())
-            rank = len(shape)
-            result = cu.zeros(shape, dtype=dtype)
-            PAD = lambda x : cu.full(shape, x) if x.shape != shape else x
-            @cuda.jit(f'void({''.join(["{" + str(i) + ".dtype}[{':,'*rank}], " for i in alph[:len(args)]])[:-2]}, {"{result.dtype}"}[{"{':,'*rank}"}])')
-            def function({values}, result):
-               idx = cuda.grid(rank) 
-               cfunc = {self.function}
-               result[idx] = cfunc({idx_values})
-            threads = (thread,) * rank
-            blocks = tuple([math.ceil(result.shape[i] / threads[i]) for i in range(rank)])
-            function[blocks, threads]({padded_values}, result)
-            return result''')
-        return eval(f'''func({''.join([f"args[{i}], " for i in range(len(args))])[:-2]}, thread=thread, dtype=dtype)''')
-
-class AdvancedFunction:
-    '''
-    ... Dont ask me why
-
-    This one ADVANCED`function able to return tuple of results
-
-    e.g. AdvancedFunction("lambda x, y : (x + y, x - y)")(x, y)
-
-    will return tuple of (res_0, res_1)
-
-    Amount of inputs and output values can be any
+    Returns matrix or matrixes
     '''
     def __init__(self, function):
         self.function = function
         self.f = eval(function)
-        self.is_built = False
+        self.amount_args = len(function.split("lambda", 1)[1].split(":", 1)[0].split(","))
+        self.build(self.amount_args)
     def build(self, amount_args):
         self.outputs = 1
         try: self.outputs = len(eval(f"self.f({''.join(["1, " for _ in range(amount_args)])[:-2]})"))
@@ -91,10 +52,9 @@ class AdvancedFunction:
         self.void_values = ''.join(["{" + str(i) + ".dtype}[{':,'*rank}], " for i in self.val[:amount_args]])[:-2]
         self.void_results = ''.join(["{" + str(i) + ".dtype}[{':,'*rank}], " for i in self.res[:self.outputs]])[:-2]
         self.args = ''.join([f"args[{i}], " for i in range(amount_args)])[:-2]
-        self.is_built = True
     def __call__(self, *args, thread: int=10, dtype=None):
-        if not self.is_built:
-            self.build(len(args))
+        if len(args) != self.amount_args:
+            raise ValueError(f"Amount of arguments on call doesn't match amount of them on initialization of function: Got {len(args)} arguments, while on initialization it was {self.amount_args}")
         exec(f'''def func({self.values}, thread, dtype):
             if dtype is None:
                 dtype = val_0.dtype
