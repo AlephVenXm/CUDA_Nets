@@ -37,8 +37,6 @@ class Function:
         self.function = function
     def __call__(self, *args, thread: int=10, dtype=None):
         alph = ["val_" + f"{i}" for i in range(len(args))]
-        for i in range(len(args)):
-            exec(f"{alph[i]} = args[i]")
         values = ''.join([str(i) + ", " for i in alph[:len(args)]])[:-2]
         idx_values = ''.join([str(i) + "[idx], " for i in alph[:len(args)]])[:-2]
         padded_values = ''.join(["PAD(" + str(i) + "), " for i in alph[:len(args)]])[:-2]
@@ -58,7 +56,7 @@ class Function:
             blocks = tuple([math.ceil(result.shape[i] / threads[i]) for i in range(rank)])
             function[blocks, threads]({padded_values}, result)
             return result''')
-        return eval(f'''func({values}, thread=thread, dtype=dtype)''')
+        return eval(f'''func({''.join([f"args[{i}], " for i in range(len(args))])[:-2]}, thread=thread, dtype=dtype)''')
 
 class AdvancedFunction:
     '''
@@ -82,8 +80,6 @@ class AdvancedFunction:
         finally: ...
         val = ["val_" + f"{i}" for i in range(len(args))]
         res = ["res_" + f"{i}" for i in range(outputs)]
-        for i in range(len(args)):
-            exec(f"{val[i]} = args[i]")
         values = ''.join([str(i) + ", " for i in val[:len(args)]])[:-2]
         results = ''.join([str(i) + ", " for i in res[:outputs]])[:-2]
         idx_values = ''.join([str(i) + "[idx], " for i in val[:len(args)]])[:-2]
@@ -105,7 +101,7 @@ class AdvancedFunction:
             blocks = tuple([math.ceil(res_0.shape[i] / threads[i]) for i in range(rank)])
             function[blocks, threads]({padded_values}, {results})
             return {results}''')
-        return eval(f'''func({values}, thread=thread, dtype=dtype)''')
+        return eval(f'''func({''.join([f"args[{i}], " for i in range(len(args))])[:-2]}, thread=thread, dtype=dtype)''')
 
 ### //////////////////////////////////////// ###
 ### ///       ACTIVATION FUNCTIONS       /// ###
