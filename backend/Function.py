@@ -73,35 +73,45 @@ class AdvancedFunction:
     def __init__(self, function):
         self.function = function
         self.f = eval(function)
-    def __call__(self, *args, thread: int=10, dtype=None):
-        outputs = 1
-        try: outputs = len(eval(f"self.f({''.join(["1, " for _ in range(len(args))])[:-2]})"))
+        self.is_built = False
+    def build(self, amount_args):
+        self.outputs = 1
+        try: self.outputs = len(eval(f"self.f({''.join(["1, " for _ in range(amount_args)])[:-2]})"))
         except: TypeError
         finally: ...
-        val = ["val_" + f"{i}" for i in range(len(args))]
-        res = ["res_" + f"{i}" for i in range(outputs)]
-        values = ''.join([str(i) + ", " for i in val[:len(args)]])[:-2]
-        results = ''.join([str(i) + ", " for i in res[:outputs]])[:-2]
-        idx_values = ''.join([str(i) + "[idx], " for i in val[:len(args)]])[:-2]
-        idx_results = ''.join([str(i) + "[idx], " for i in res[:outputs]])[:-2]
-        padded_values = ''.join(["PAD(" + str(i) + "), " for i in val[:len(args)]])[:-2]
-        exec(f'''def func({values}, thread: int=10, dtype=None):
+        self.val = ["val_" + f"{i}" for i in range(amount_args)]
+        self.res = ["res_" + f"{i}" for i in range(self.outputs)]
+        self.values = ''.join([str(i) + ", " for i in self.val[:amount_args]])[:-2]
+        self.results = ''.join([str(i) + ", " for i in self.res[:self.outputs]])[:-2]
+        self.idx_values = ''.join([str(i) + "[idx], " for i in self.val[:amount_args]])[:-2]
+        self.idx_results = ''.join([str(i) + "[idx], " for i in self.res[:self.outputs]])[:-2]
+        self.padded_values = ''.join(["PAD(" + str(i) + "), " for i in self.val[:amount_args]])[:-2]
+        self.shapes = ''.join([str(i) + ".shape, " for i in self.val[:amount_args]])[:-2]
+        self.blanks = ''.join(["cu.zeros(shape, dtype=dtype), " for _ in range(self.outputs)])[:-2]
+        self.void_values = ''.join(["{" + str(i) + ".dtype}[{':,'*rank}], " for i in self.val[:amount_args]])[:-2]
+        self.void_results = ''.join(["{" + str(i) + ".dtype}[{':,'*rank}], " for i in self.res[:self.outputs]])[:-2]
+        self.args = ''.join([f"args[{i}], " for i in range(amount_args)])[:-2]
+        self.is_built = True
+    def __call__(self, *args, thread: int=10, dtype=None):
+        if not self.is_built:
+            self.build(len(args))
+        exec(f'''def func({self.values}, thread, dtype):
             if dtype is None:
                 dtype = val_0.dtype
-            shape = max({''.join([str(i) + ".shape, " for i in val[:len(args)]])[:-2]}, ())
+            shape = max({self.shapes}, ())
             rank = len(shape)
-            {results} = {''.join(["cu.zeros(shape, dtype=dtype), " for _ in range(outputs)])[:-2]}
+            {self.results} = {self.blanks}
             PAD = lambda x : cu.full(shape, x) if x.shape != shape else x
-            @cuda.jit(f'void({''.join(["{" + str(i) + ".dtype}[{':,'*rank}], " for i in val[:len(args)]])[:-2]}, {''.join(["{" + str(i) + ".dtype}[{':,'*rank}], " for i in res[:outputs]])[:-2]})')
-            def function({values}, {results}):
+            @cuda.jit(f'void({self.void_values}, {self.void_results})')
+            def function({self.values}, {self.results}):
                idx = cuda.grid(rank) 
                cfunc = {self.function}
-               {idx_results} = cfunc({idx_values})
+               {self.idx_results} = cfunc({self.idx_values})
             threads = (thread,) * rank
             blocks = tuple([math.ceil(res_0.shape[i] / threads[i]) for i in range(rank)])
-            function[blocks, threads]({padded_values}, {results})
-            return {results}''')
-        return eval(f'''func({''.join([f"args[{i}], " for i in range(len(args))])[:-2]}, thread=thread, dtype=dtype)''')
+            function[blocks, threads]({self.padded_values}, {self.results})
+            return {self.results}''')
+        return eval(f'''func({self.args}, thread=thread, dtype=dtype)''')
 
 ### //////////////////////////////////////// ###
 ### ///       ACTIVATION FUNCTIONS       /// ###
