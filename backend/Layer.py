@@ -1,6 +1,7 @@
 import os
 if os.environ["USE_CUDA"] == "1":
     import cupy as cu
+    from Operation import *
     if os.environ["USE_C"] == "1":
         from C_Functions import *
 else:
@@ -39,11 +40,11 @@ class Dense:
         self.in_data = input
         if os.environ["USE_CUDA"] == "1" and os.environ["USE_C"] == "1":
             if self.activation != None:
-                return self.activation(linear(self.weights, input, self.biases))
-            return linear(self.weights, input, self.biases)
+                return self.activation(MatAdd(cu.matmul(input, self.weights), self.biases))
+            return MatAdd(cu.matmul(input, self.weights), self.biases)
         if self.activation != None:
-                return self.activation(self.weights*input+self.biases)
-        return self.weights*input+self.biases
+                return self.activation(cu.matmul(input, self.weights)+self.biases)
+        return cu.matmul(input, self.weights)+self.biases
     def build(self) -> None:
         self.v_b = self.bias_initializer(self.biases.shape)
         self.m_b = self.bias_initializer(self.biases.shape)
