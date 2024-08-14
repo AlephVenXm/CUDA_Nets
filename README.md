@@ -3,7 +3,7 @@
 
 Main idea: keras-style API with some pytorch additions, and, possibly, some realizations of self-adaptive algorithms (e.g. *fixed* DynamicGradient, LogicMemoryUnit, AdaptiveNeuralConnections, Multi-Dimensional Weight Access-Storage System...)
 
-Current contributor(s): Aleph
+Current contributor(s): Aleph (I'm currently studying Reinforcement Learning, this repo could freeze for a bit)
 
 # Uniting Python and CUDA
 
