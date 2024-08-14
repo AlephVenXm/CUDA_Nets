@@ -11,6 +11,23 @@ Interface of classes are written on Python, while all computation goes trough GP
 
 ![merge](https://github.com/AlephVenXm/CUDA_Nets/blob/main/merge.png)
 
+# Function class
+
+```ruby
+func = Function("lambda x, y : (x + y, x - y) if x > y else (x * y, x / y)")
+x = cu.linspace(-1.0, 1.0, 4).reshape(2, 2)
+y = cu.random.uniform(-1.0, 1.0, 2)
+z1, z2 = func(x, y, thread=32, dtype=cu.float16)
+print("first matrix:\n{}\nsecond matrix:\n{}".format(z1, z2))
+
+first matrix:
+[[-0.255  -0.2257]
+ [ 0.588   1.677 ]]
+second matrix:
+[[-3.926   -0.4924 ]
+ [ 0.07855  0.323  ]]
+```
+
 # Test on function = sum(sqrt(linspace(0.0, 100.0, 10e6)))
 
 ![compare](https://github.com/AlephVenXm/CUDA_Nets/blob/main/compare.png)
